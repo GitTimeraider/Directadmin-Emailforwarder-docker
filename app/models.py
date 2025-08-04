@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import pyotp
 import base64
 import os
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -13,6 +14,9 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(120), nullable=False)
     totp_secret = db.Column(db.String(32), nullable=True)
     totp_enabled = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -36,3 +40,13 @@ class User(UserMixin, db.Model):
             name=self.username,
             issuer_name='DirectAdmin Email Forwarder'
         )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'is_admin': self.is_admin,
+            'totp_enabled': self.totp_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
