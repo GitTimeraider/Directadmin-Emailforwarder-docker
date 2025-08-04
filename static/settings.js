@@ -1,3 +1,16 @@
+// Add this to the top of settings.js to debug
+console.log('Settings page loaded');
+
+// Check if the GET request works
+fetch('/settings/api/da-config')
+    .then(response => {
+        console.log('GET /settings/api/da-config - Status:', response.status);
+        if (response.status === 405) {
+            console.error('GET method not allowed!');
+        }
+    });
+
+
 // Load current settings on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
