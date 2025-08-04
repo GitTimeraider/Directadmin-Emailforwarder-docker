@@ -28,7 +28,7 @@ class DirectAdminAPI:
                     auth=auth, 
                     verify=False, 
                     timeout=10,
-                    allow_redirects=True
+                    allow_redirects=False  # Don't follow redirects
                 )
             else:
                 response = self.session.post(
@@ -38,38 +38,61 @@ class DirectAdminAPI:
                     verify=False, 
                     timeout=10,
                     headers={'Content-Type': 'application/x-www-form-urlencoded'},
-                    allow_redirects=True
+                    allow_redirects=False  # Don't follow redirects
                 )
 
             print(f"Response status: {response.status_code}")
-            print(f"Response headers: {response.headers}")
 
             if response.status_code == 401:
-                raise Exception("DirectAdmin authentication failed - check username/password")
+                raise Exception("Authentication failed - invalid username or password")
+            elif response.status_code == 302 or response.status_code == 301:
+                # DirectAdmin might redirect on auth failure
+                raise Exception("Authentication required - check credentials")
 
             return response
         except requests.exceptions.ConnectionError:
-            raise Exception(f"Cannot connect to DirectAdmin server at {self.server}")
+            raise Exception(f"Cannot connect to server at {self.server}")
         except requests.exceptions.Timeout:
-            raise Exception("DirectAdmin server timeout")
+            raise Exception("Connection timeout - server not responding")
+        except requests.exceptions.SSLError:
+            raise Exception("SSL error - try using http:// instead of https://")
         except requests.exceptions.RequestException as e:
-            raise Exception(f"DirectAdmin connection error: {str(e)}")
+            raise Exception(f"Connection error: {str(e)}")
 
     def test_connection(self):
-        """Test connection by getting API version or domains"""
+        """Test connection with a simple API call"""
         try:
-            # Try multiple endpoints to test connection
-            # First try SHOW_DOMAINS
-            response = self._make_request('API_SHOW_DOMAINS')
-            if response.status_code == 200:
-                return True, "Connection successful"
+            # Try the simplest API call - show API version
+            # Some of these endpoints might work depending on DA version
+            test_endpoints = [
+                'API_SHOW_DOMAINS',  # List domains
+                'API_SHOW_USER_USAGE',  # Show user usage
+                'API_SHOW_USER_CONFIG',  # Show user config
+            ]
 
-            # If that fails, try getting user info
-            response = self._make_request('API_SHOW_USER_CONFIG')
-            if response.status_code == 200:
-                return True, "Connection successful"
+            last_error = None
+            for endpoint in test_endpoints:
+                try:
+                    response = self._make_request(endpoint)
+                    if response.status_code == 200:
+                        # Check if response looks like DirectAdmin
+                        content = response.text.lower()
+                        if 'error=1' in content:
+                            # DirectAdmin error response
+                            continue
+                        elif '=' in response.text or response.text.strip():
+                            # Looks like a valid DirectAdmin response
+                            return True, "Connection successful!"
+                except Exception as e:
+                    last_error = str(e)
+                    print(f"Test endpoint {endpoint} failed: {e}")
+                    continue
 
-            return False, f"Unexpected response: {response.status_code}"
+            # If we get here, no endpoint worked
+            if last_error:
+                return False, last_error
+            else:
+                return False, "Could not verify DirectAdmin API access"
 
         except Exception as e:
             return False, str(e)
@@ -82,19 +105,31 @@ class DirectAdminAPI:
                 # Parse the response - DirectAdmin returns URL-encoded list
                 if response.text.strip():
                     # Response format: account1=data&account2=data&...
-                    parsed = parse_qs(response.text.strip())
-                    for account_name in parsed.keys():
-                        # Skip the API username and system accounts
-                        if (account_name != self.username and 
-                            not account_name.startswith('_') and
-                            '@' not in account_name):
-                            accounts.append(f"{account_name}@{domain}")
+                    # or sometimes: account1&account2&account3
+                    if '=' in response.text:
+                        parsed = parse_qs(response.text.strip())
+                        for account_name in parsed.keys():
+                            if (account_name != self.username and 
+                                not account_name.startswith('_') and
+                                '@' not in account_name):
+                                accounts.append(f"{account_name}@{domain}")
+                    else:
+                        # Simple list format
+                        for line in response.text.strip().split('\n'):
+                            account_name = line.split('&')[0].strip()
+                            if (account_name and 
+                                account_name != self.username and 
+                                not account_name.startswith('_')):
+                                accounts.append(f"{account_name}@{domain}")
 
                 return sorted(accounts)
             return []
         except Exception as e:
             print(f"Error in get_email_accounts: {e}")
             return []
+
+    # ... rest of the methods remain the same ...
+
 
     def get_forwarders(self, domain):
         try:
