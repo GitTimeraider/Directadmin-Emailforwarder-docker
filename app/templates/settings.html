@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>User Settings</h2>
+
+    <div class="card">
+        <h3>DirectAdmin Configuration</h3>
+        <p class="settings-description">Configure your DirectAdmin server connection to manage email forwarders.</p>
+
+        <form id="daConfigForm">
+            <div class="form-group">
+                <label for="da_server">DirectAdmin Server URL</label>
+                <input type="url" id="da_server" name="da_server" placeholder="https://server.example.com:2222" required>
+                <small>Include protocol (https://) and port (usually 2222)</small>
+            </div>
+
+            <div class="form-group">
+                <label for="da_username">DirectAdmin Username</label>
+                <input type="text" id="da_username" name="da_username" required>
+                <small>Your DirectAdmin API username</small>
+            </div>
+
+            <div class="form-group">
+                <label for="da_password">DirectAdmin Password</label>
+                <input type="password" id="da_password" name="da_password" placeholder="Leave empty to keep current password">
+                <small>Your DirectAdmin API password (encrypted storage)</small>
+            </div>
+
+            <div class="form-group">
+                <label for="da_domain">Domain</label>
+                <input type="text" id="da_domain" name="da_domain" placeholder="example.com" required>
+                <small>The domain you want to manage forwarders for</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="testConnection()">Test Connection</button>
+                <button type="submit" class="btn-primary">Save Settings</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Account Settings</h3>
+
+        <div class="settings-section">
+            <h4>Two-Factor Authentication</h4>
+            {% if current_user.totp_enabled %}
+                <p class="status-enabled">✓ 2FA is enabled</p>
+                <button class="btn-secondary" onclick="window.location.href='/disable-2fa'">Disable 2FA</button>
+            {% else %}
+                <p class="status-disabled">⚠ 2FA is not enabled</p>
+                <button class="btn-primary" onclick="window.location.href='/setup-2fa'">Enable 2FA</button>
+            {% endif %}
+        </div>
+
+        <div class="settings-section">
+            <h4>Change Password</h4>
+            <button class="btn-secondary" onclick="window.location.href='/change-password'">Change Password</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='settings.js') }}"></script>
+{% endblock %}
