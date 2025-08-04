@@ -1,9 +1,23 @@
+// Helper function to safely parse JSON
+async function parseResponse(response) {
+    const text = await response.text();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error('Response is not JSON:', text);
+        throw new Error('Server returned invalid response (not JSON)');
+    }
+}
+
 // Load current settings on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const response = await fetch('/settings/api/da-config');
-        const config = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
+        const config = await parseResponse(response);
         console.log('Loaded config:', config);
 
         if (config.da_server) document.getElementById('da_server').value = config.da_server;
@@ -15,6 +29,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error('Error loading settings:', error);
+        if (error.message.includes('not JSON')) {
+            alert('Session expired. Please login again.');
+            window.location.href = '/login';
+        }
     }
 });
 
@@ -37,19 +55,18 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',  // Important for cookies!
             body: JSON.stringify(formData)
         });
 
-        const result = await response.json();
+        const result = await parseResponse(response);
         console.log('Save response:', result);
 
-        if (response.ok) {
+        if (response.ok && result.success) {
             alert('Settings saved successfully!');
-            // Clear password field
             document.getElementById('da_password').value = '';
             document.getElementById('da_password').placeholder = 'Password is set (leave empty to keep current)';
 
-            // Redirect to dashboard after successful save
             setTimeout(() => {
                 window.location.href = '/dashboard';
             }, 1000);
@@ -76,11 +93,22 @@ async function testConnection() {
         return;
     }
 
+    // Ensure URL has protocol
+    if (!formData.da_server.startsWith('http://') && !formData.da_server.startsWith('https://')) {
+        formData.da_server = 'https://' + formData.da_server;
+        document.getElementById('da_server').value = formData.da_server;
+    }
+
     if (!formData.da_password && !confirm('No password entered. Test with saved password?')) {
         return;
     }
 
     console.log('Testing connection to:', formData.da_server);
+
+    // Show loading state
+    const originalText = event.target.textContent;
+    event.target.textContent = 'Testing...';
+    event.target.disabled = true;
 
     try {
         const response = await fetch('/settings/api/test-connection', {
@@ -88,13 +116,14 @@ async function testConnection() {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',  // Important!
             body: JSON.stringify(formData)
         });
 
-        const result = await response.json();
+        const result = await parseResponse(response);
         console.log('Test response:', result);
 
-        if (response.ok) {
+        if (response.ok && result.success) {
             alert('✓ ' + result.message);
         } else {
             alert('✗ Connection failed: ' + (result.error || 'Unknown error'));
@@ -102,5 +131,9 @@ async function testConnection() {
     } catch (error) {
         console.error('Error testing connection:', error);
         alert('✗ Connection test failed: ' + error.message);
+    } finally {
+        // Restore button state
+        event.target.textContent = originalText;
+        event.target.disabled = false;
     }
 }
