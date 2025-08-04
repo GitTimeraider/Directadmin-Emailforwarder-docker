@@ -551,3 +551,125 @@ input.error {
         opacity: 1;
     }
 }
+/* Hamburger Menu Styles */
+.hamburger {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    z-index: 1001;
+}
+
+.hamburger span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: white;
+    margin: 5px 0;
+    transition: all 0.3s ease;
+}
+
+/* Hamburger animation */
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Mobile Navigation Styles */
+@media (max-width: 768px) {
+    /* Fix the blue bar extending issue */
+    nav {
+        position: relative;
+        flex-wrap: wrap;
+        padding: 1rem;
+        background-color: #2c3e50; /* Ensure background is set */
+        width: 100%;
+        min-width: 100%;
+    }
+
+    /* Show hamburger on mobile */
+    .hamburger {
+        display: block;
+        margin-left: auto;
+    }
+
+    /* Style nav links for mobile */
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        max-width: 300px;
+        height: 100vh;
+        background-color: #2c3e50;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 80px 2rem 2rem;
+        transition: right 0.3s ease;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        overflow-y: auto;
+    }
+
+    /* Show menu when active */
+    .nav-links.active {
+        right: 0;
+    }
+
+    /* Style mobile nav links */
+    .nav-links a {
+        display: block;
+        width: 100%;
+        padding: 1rem 0;
+        margin: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 1.1rem;
+    }
+
+    .nav-links a:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding-left: 0.5rem;
+    }
+
+    /* Overlay when menu is open */
+    .nav-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    .nav-overlay.active {
+        display: block;
+    }
+
+    /* Prevent body scroll when menu is open */
+    body.menu-open {
+        overflow: hidden;
+    }
+}
+
+/* Ensure nav brand stays visible */
+.nav-brand {
+    display: flex;
+    align-items: center;
+}
+
+/* Desktop styles (no change) */
+@media (min-width: 769px) {
+    .nav-links {
+        display: flex !important; /* Ensure it's always visible on desktop */
+    }
+}
