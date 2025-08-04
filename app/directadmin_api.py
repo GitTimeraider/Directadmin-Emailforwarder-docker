@@ -115,62 +115,61 @@ def _make_request(self, endpoint, data=None):
         except Exception as e:
             return False, str(e)
 
-   def get_email_accounts(self):
-    """Get all email accounts for the domain"""
-    try:
+    def get_email_accounts(self):
+        try:
         # DirectAdmin API endpoint for listing email accounts
-        endpoint = '/CMD_API_POP'
-        params = {
-            'action': 'list',
-            'domain': self.domain
-        }
+            endpoint = '/CMD_API_POP'
+            params = {
+                'action': 'list',
+                'domain': self.domain
+            }
 
-        response = self._make_request(endpoint, params)
+            response = self._make_request(endpoint, params)
 
-        if response is None:
-            return []
+            if response is None:
+                   return []
 
-        # Parse the response
-        accounts = []
+            # Parse the response
+            accounts = []
 
-        # DirectAdmin returns data in key=value format
-        if isinstance(response, dict):
-            # If it's already parsed as dict
-            for key, value in response.items():
-                if '@' in key:  # It's an email address
-                    accounts.append(key)
-                elif key.startswith('list[]'):  # Alternative format
-                    accounts.append(value)
-        else:
-            # If it's raw text response
-            lines = response.strip().split('\n') if isinstance(response, str) else []
-            for line in lines:
-                if '=' in line:
-                    key, value = line.split('=', 1)
-                    # Check various formats DA might use
-                    if '@' in value:
+            # DirectAdmin returns data in key=value format
+            if isinstance(response, dict):
+                # If it's already parsed as dict
+                for key, value in response.items():
+                    if '@' in key:  # It's an email address
+                        accounts.append(key)
+                    elif key.startswith('list[]'):  # Alternative format
                         accounts.append(value)
-                    elif '@' not in key and value and not key.startswith('error'):
-                        # It might be username only, add domain
-                        email = f"{value}@{self.domain}"
-                        accounts.append(email)
+            else:
+                # If it's raw text response
+                lines = response.strip().split('\n') if isinstance(response, str) else []
+                for line in lines:
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        # Check various formats DA might use
+                        if '@' in value:
+                            accounts.append(value)
+                        elif '@' not in key and value and not key.startswith('error'):
+                            # It might be username only, add domain
+                            email = f"{value}@{self.domain}"
+                            accounts.append(email)
 
-        # Filter out the API username's email
-        filtered_accounts = []
-        api_email = f"{self.username}@{self.domain}"
+            # Filter out the API username's email
+            filtered_accounts = []
+            api_email = f"{self.username}@{self.domain}"
 
-        for email in accounts:
-            if email.lower() != api_email.lower():
-                filtered_accounts.append(email)
+            for email in accounts:
+                if email.lower() != api_email.lower():
+                    filtered_accounts.append(email)
 
-        print(f"Found email accounts: {filtered_accounts}")
-        return sorted(filtered_accounts)
+            print(f"Found email accounts: {filtered_accounts}")
+            return sorted(filtered_accounts)
 
-    except Exception as e:
-        print(f"Error getting email accounts: {e}")
-        import traceback
-        traceback.print_exc()
-        return []
+        except Exception as e:
+            print(f"Error getting email accounts: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
 
     def get_forwarders(self, domain):
         try:
