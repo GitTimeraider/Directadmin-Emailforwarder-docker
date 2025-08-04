@@ -21,7 +21,7 @@
 
     <!-- Wrap existing nav links -->
     <div class="nav-links" id="navLinks">
-        <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
         <a href="{{ url_for('settings.index') }}">Settings</a>
         <a href="{{ url_for('auth.profile') }}">Profile</a>
         {% if current_user.is_admin %}
