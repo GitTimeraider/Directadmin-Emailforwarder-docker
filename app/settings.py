@@ -66,6 +66,20 @@ def update_da_config():
         print(traceback.format_exc())  # Full traceback
         db.session.rollback()
         return jsonify({'error': f'Failed to save settings: {str(e)}'}), 500
+        
+@settings_bp.route('/api/debug')
+@login_required
+def debug_info():
+    """Debug endpoint to check user state"""
+    return jsonify({
+        'user': current_user.username,
+        'has_encryption_key': bool(current_user.encryption_key),
+        'has_da_config': current_user.has_da_config(),
+        'da_server_configured': bool(current_user.da_server),
+        'da_username_configured': bool(current_user.da_username),
+        'da_password_configured': bool(current_user.da_password_encrypted),
+        'da_domain_configured': bool(current_user.da_domain)
+    })
 
 @settings_bp.route('/api/test-connection', methods=['POST'])
 @login_required
