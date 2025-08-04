@@ -2,6 +2,18 @@
 let currentForwarders = [];
 let emailAccounts = [];
 
+// Helper function to validate destinations (including special ones)
+function isValidDestination(destination) {
+    // Allow special destinations
+    if (destination.startsWith(':') || destination.startsWith('|')) {
+        return true;
+    }
+
+    // Otherwise check if it's a valid email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(destination);
+}
+
 // Load email accounts for destination dropdown
 async function loadEmailAccounts() {
     try {
@@ -18,18 +30,6 @@ async function loadEmailAccounts() {
     } catch (error) {
         console.error('Error loading email accounts:', error);
     }
-}
-
-// Add this helper function near the top of the file
-function isValidDestination(destination) {
-    // Allow special destinations
-    if (destination.startsWith(':') || destination.startsWith('|')) {
-        return true;
-    }
-
-    // Otherwise check if it's a valid email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(destination);
 }
 
 // Update destination dropdown with email accounts
@@ -58,31 +58,47 @@ function updateDestinationDropdown() {
         });
     }
 
-    // Add separator
-    const separator = document.createElement('option');
-    separator.disabled = true;
-    separator.textContent = '──────────────';
-    select.appendChild(separator);
+    // Handle destination type radio buttons (if they exist)
+    const radioButtons = document.querySelectorAll('input[name="destination_type"]');
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateDestinationVisibility();
+        });
+    });
 
-    // Add custom email option
-    const customOption = document.createElement('option');
-    customOption.value = 'custom';
-    customOption.textContent = 'Enter custom email address...';
-    select.appendChild(customOption);
+    // Initial visibility update
+    updateDestinationVisibility();
+}
 
-    // Handle selection changes
-    select.addEventListener('change', function() {
-        const customInput = document.getElementById('custom-destination');
-        if (this.value === 'custom') {
-            customInput.style.display = 'block';
-            customInput.required = true;
-            customInput.focus();
-        } else {
-            customInput.style.display = 'none';
-            customInput.required = false;
+// Update visibility based on destination type selection
+function updateDestinationVisibility() {
+    const destinationType = document.querySelector('input[name="destination_type"]:checked');
+    const destSelect = document.getElementById('destination');
+    const customGroup = document.getElementById('custom-destination-group');
+    const customInput = document.getElementById('custom-destination'); // FIXED: Using kebab-case
+
+    if (!destinationType) return;
+
+    const isCustom = destinationType.value === 'custom';
+
+    // Handle destination select
+    if (destSelect) {
+        destSelect.style.display = isCustom ? 'none' : 'block';
+        destSelect.required = !isCustom;
+    }
+
+    // Handle custom destination group
+    if (customGroup) {
+        customGroup.style.display = isCustom ? 'block' : 'none';
+    }
+
+    // Handle custom destination input
+    if (customInput) {
+        customInput.required = isCustom;
+        if (!isCustom) {
             customInput.value = '';
         }
-    });
+    }
 }
 
 // Load forwarders from API
@@ -157,26 +173,43 @@ async function createForwarder(event) {
     event.preventDefault();
 
     const form = event.target;
-    const addressInput = form.querySelector('#address');
+    const addressInput = form.querySelector('#alias'); // FIXED: Changed from #address to #alias
+    const destinationType = document.querySelector('input[name="destination_type"]:checked');
     const destinationSelect = form.querySelector('#destination');
-    const customDestInput = form.querySelector('#custom-destination');
+    const customDestInput = form.querySelector('#custom-destination'); // FIXED: Using kebab-case
     const submitButton = form.querySelector('button[type="submit"]');
 
     // Get the actual destination
-    let destination = destinationSelect.value;
-    if (destination === 'custom') {
-        destination = customDestInput.value.trim();
-        if (!destination) {
+    let destination;
+
+    if (destinationType && destinationType.value === 'custom') {
+        // Using custom destination
+        if (!customDestInput || !customDestInput.value.trim()) {
             showMessage('Please enter a custom destination', 'error');
+            if (customDestInput) customDestInput.focus();
+            return;
+        }
+
+        destination = customDestInput.value.trim();
+
+        // Validate the destination
+        if (!isValidDestination(destination)) {
+            showMessage('Please enter a valid email address or special destination (e.g., :blackhole:, :fail:, |/path/to/script)', 'error');
             customDestInput.focus();
             return;
         }
+    } else {
+        // Using existing email from dropdown
+        if (!destinationSelect || !destinationSelect.value) {
+            showMessage('Please select a destination email', 'error');
+            return;
+        }
+        destination = destinationSelect.value;
     }
 
-    // Validate
-    if (!isValidDestination(destination)) {
-        showMessage('Please enter a valid email address or special destination (e.g., :blackhole:, :fail:)', 'error');
-        customDestInput.focus();
+    // Validate alias
+    if (!addressInput || !addressInput.value.trim()) {
+        showMessage('Please enter an alias', 'error');
         return;
     }
 
@@ -201,7 +234,9 @@ async function createForwarder(event) {
         if (response.ok) {
             // Clear form
             form.reset();
-            customDestInput.style.display = 'none';
+
+            // Reset visibility
+            updateDestinationVisibility();
 
             // Reload forwarders
             await loadForwarders();
