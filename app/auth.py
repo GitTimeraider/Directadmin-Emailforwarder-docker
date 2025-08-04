@@ -16,30 +16,50 @@ def login():
         password = request.form.get('password')
         totp_code = request.form.get('totp_code', '')
 
-        user = User.query.filter_by(username=username).first()
+        print(f"Login attempt - Username: {username}, Has TOTP: {bool(totp_code)}")
 
-        if user and user.check_password(password):
-            # Check TOTP if enabled
-            if user.totp_enabled:
-                if not totp_code:
-                    flash('2FA code required', 'error')
-                    return render_template('login.html', require_totp=True, username=username)
+        # If we have a TOTP code, we're in the second step
+        if totp_code:
+            # Get user again (username should be in hidden field)
+            user = User.query.filter_by(username=username).first()
 
-                if not user.verify_totp(totp_code):
+            if user and user.totp_enabled:
+                # We need to verify password again (from hidden field) AND TOTP
+                if user.check_password(password) and user.verify_totp(totp_code):
+                    # Success!
+                    user.update_last_login()
+                    db.session.commit()
+                    login_user(user)
+
+                    next_page = request.args.get('next')
+                    return redirect(next_page) if next_page else redirect(url_for('index'))
+                else:
                     flash('Invalid 2FA code', 'error')
+                    # Show 2FA form again with username preserved
                     return render_template('login.html', require_totp=True, username=username)
-
-            # Update last login
-            user.last_login = datetime.utcnow()
-            db.session.commit()
-
-            login_user(user)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
-            flash('Invalid username or password', 'error')
+            # First step - check username and password
+            user = User.query.filter_by(username=username).first()
 
-    return render_template('login.html')
+            if user and user.check_password(password):
+                # Check if 2FA is enabled
+                if user.totp_enabled:
+                    # Show 2FA form
+                    flash('Please enter your 2FA code', 'info')
+                    return render_template('login.html', require_totp=True, username=username)
+                else:
+                    # No 2FA, login directly
+                    user.update_last_login()
+                    db.session.commit()
+                    login_user(user)
+
+                    next_page = request.args.get('next')
+                    return redirect(next_page) if next_page else redirect(url_for('index'))
+            else:
+                flash('Invalid username or password', 'error')
+
+    return render_template('login.html', require_totp=False)
+
 
 @auth_bp.route('/logout')
 @login_required
