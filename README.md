@@ -48,5 +48,3 @@ docker run -d \
   -v email-forwarder-data:/app/data \
   ghcr.io/gittimeraider/directadmin-emailforwarder:latest
 ```
-
-
