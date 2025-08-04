@@ -1,9 +1,8 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from app.models import db
 from app.directadmin_api import DirectAdminAPI
 import traceback
-import json
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
 
@@ -12,9 +11,11 @@ settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
 def index():
     return render_template('settings.html')
 
+# SEPARATE routes for GET and POST
 @settings_bp.route('/api/da-config', methods=['GET'])
 @login_required  
 def get_da_config():
+    """GET endpoint to retrieve current config"""
     try:
         return jsonify({
             'da_server': current_user.da_server or '',
@@ -23,54 +24,28 @@ def get_da_config():
             'has_password': bool(current_user.da_password_encrypted)
         })
     except Exception as e:
-        print(f"Error getting DA config: {e}")
+        print(f"Error in GET da-config: {e}")
         return jsonify({'error': str(e)}), 500
 
 @settings_bp.route('/api/da-config', methods=['POST'])
 @login_required
 def update_da_config():
-    """Save DirectAdmin settings"""
-    print(f"\n=== SAVE ENDPOINT CALLED ===")
-    print(f"Request method: {request.method}")
-    print(f"Content-Type: {request.content_type}")
-    print(f"Request headers: {dict(request.headers)}")
-
-    # Check if request has JSON content type
-    if not request.content_type or 'application/json' not in request.content_type:
-        print(f"ERROR: Wrong content type: {request.content_type}")
-        return jsonify({
-            'error': 'Content-Type must be application/json',
-            'received_content_type': request.content_type
-        }), 400
+    """POST endpoint to update config"""
+    print(f"POST to da-config from user: {current_user.username}")
 
     try:
-        # Try to get JSON data
-        try:
-            data = request.get_json(force=True)  # Force parsing even if content-type is wrong
-            if not data:
-                print("ERROR: No JSON data in request body")
-                return jsonify({'error': 'No JSON data provided'}), 400
-        except Exception as json_error:
-            print(f"ERROR: Failed to parse JSON: {json_error}")
-            print(f"Request data: {request.data}")
-            return jsonify({
-                'error': 'Invalid JSON in request body',
-                'details': str(json_error)
-            }), 400
+        # Get JSON data
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
 
         print(f"Received data: {data}")
-        print(f"Current user: {current_user.username}")
 
         # Validate required fields
         required_fields = ['da_server', 'da_username', 'da_domain']
-        missing_fields = []
-
-        for field in required_fields:
-            if not data.get(field, '').strip():
-                missing_fields.append(field)
+        missing_fields = [field for field in required_fields if not data.get(field, '').strip()]
 
         if missing_fields:
-            print(f"Missing fields: {missing_fields}")
             return jsonify({
                 'error': f'Missing required fields: {", ".join(missing_fields)}',
                 'missing_fields': missing_fields
@@ -78,7 +53,6 @@ def update_da_config():
 
         # Ensure user has encryption key
         if not current_user.encryption_key:
-            print("Generating encryption key")
             current_user.generate_encryption_key()
 
         # Clean and save the server URL
@@ -86,50 +60,79 @@ def update_da_config():
         if not server_url.startswith(('http://', 'https://')):
             server_url = 'https://' + server_url
 
-        # Update DirectAdmin settings
+        # Update settings
         current_user.da_server = server_url.rstrip('/')
         current_user.da_username = data['da_username'].strip()
         current_user.da_domain = data['da_domain'].strip()
 
-        # Only update password if provided
+        # Update password if provided
         if data.get('da_password'):
-            print("Updating DA password")
             current_user.set_da_password(data['da_password'])
         elif not current_user.da_password_encrypted:
-            # No existing password and none provided
             return jsonify({
                 'error': 'Password is required for initial setup',
                 'missing_fields': ['da_password']
             }), 400
 
-        # Save to database
-        try:
-            db.session.commit()
-            print("✓ Settings saved successfully")
+        # Commit to database
+        db.session.commit()
 
-            return jsonify({
-                'success': True, 
-                'message': 'Settings saved successfully!',
-                'saved_data': {
-                    'da_server': current_user.da_server,
-                    'da_username': current_user.da_username,
-                    'da_domain': current_user.da_domain
-                }
-            })
-
-        except Exception as db_error:
-            print(f"Database error: {db_error}")
-            db.session.rollback()
-            return jsonify({
-                'error': 'Database error while saving',
-                'details': str(db_error)
-            }), 500
+        return jsonify({
+            'success': True,
+            'message': 'Settings saved successfully!'
+        })
 
     except Exception as e:
-        print(f"ERROR in update_da_config: {str(e)}")
+        print(f"Error in POST da-config: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Keep test-connection separate
+@settings_bp.route('/api/test-connection', methods=['POST'])
+@login_required
+def test_connection():
+    """Test DirectAdmin connection"""
+    try:
+        data = request.get_json()
+
+        # Use provided or saved credentials
+        server = data.get('da_server') or current_user.da_server
+        username = data.get('da_username') or current_user.da_username
+        password = data.get('da_password') or current_user.get_da_password()
+
+        if not all([server, username, password]):
+            return jsonify({'error': 'Missing credentials'}), 400
+
+        # Ensure proper URL format
+        if not server.startswith(('http://', 'https://')):
+            server = 'https://' + server
+
+        # Test connection
+        api = DirectAdminAPI(server, username, password)
+        success, message = api.test_connection()
+
         return jsonify({
-            'error': f'Failed to save settings: {str(e)}',
-            'exception_type': type(e).__name__
-        }), 500
+            'success': success,
+            'message': message
+        })
+
+    except Exception as e:
+        print(f"Test connection error: {str(e)}")
+        return jsonify({'error': str(e), 'success': False}), 200
+
+# Debug route to check available routes
+@settings_bp.route('/api/debug-routes', methods=['GET'])
+@login_required
+def debug_routes():
+    """Show all registered routes for debugging"""
+    from flask import current_app
+    routes = []
+    for rule in current_app.url_map.iter_rules():
+        if '/settings/' in rule.rule:
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': list(rule.methods),
+                'path': rule.rule
+            })
+    return jsonify(routes)
