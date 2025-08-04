@@ -121,21 +121,28 @@ def setup_2fa():
 @auth_bp.route('/disable-2fa', methods=['POST'])
 @login_required
 def disable_2fa():
-    """Disable 2FA for user"""
+    """Disable 2FA for current user"""
     try:
         print(f"Disabling 2FA for user: {current_user.username}")
 
+        # Disable 2FA
         current_user.totp_enabled = False
         current_user.totp_secret = None
+
         db.session.commit()
 
-        flash('2FA has been disabled', 'success')
+        flash('Two-factor authentication has been disabled.', 'success')
         return redirect(url_for('auth.profile'))
 
     except Exception as e:
-        print(f"ERROR in disable_2fa: {str(e)}")
-        flash('An error occurred while disabling 2FA', 'error')
+        print(f"Error disabling 2FA: {e}")
+        import traceback
+        traceback.print_exc()
+
+        db.session.rollback()
+        flash('Error disabling 2FA. Please try again.', 'error')
         return redirect(url_for('auth.profile'))
+
 
 def generate_qr_code(user):
     """Generate QR code for TOTP setup"""
