@@ -37,6 +37,61 @@
                 <button type="button" class="btn-secondary" onclick="testConnection()">Test Connection</button>
                 <button type="submit" class="btn-primary">Save Settings</button>
             </div>
+            <!-- Add this after your test connection button -->
+<button type="button" onclick="debugTest()" class="btn-secondary">Debug Test</button>
+
+<script>
+async function debugTest() {
+    console.log('=== Starting Debug Test ===');
+
+    const formData = {
+        da_server: document.getElementById('da_server').value.trim(),
+        da_username: document.getElementById('da_username').value.trim(),
+        da_password: document.getElementById('da_password').value || 'dummy',
+        da_domain: document.getElementById('da_domain').value.trim()
+    };
+
+    try {
+        const response = await fetch('/settings/api/test-connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(formData)
+        });
+
+        // Get raw text first
+        const text = await response.text();
+
+        console.log('Response Status:', response.status);
+        console.log('Response Headers:', Object.fromEntries(response.headers));
+        console.log('Response Content-Type:', response.headers.get('content-type'));
+        console.log('Response Text (first 500 chars):', text.substring(0, 500));
+
+        // Try to parse as JSON
+        try {
+            const json = JSON.parse(text);
+            console.log('Parsed JSON:', json);
+        } catch (e) {
+            console.log('Not valid JSON. Is it HTML?', text.includes('<!DOCTYPE'));
+
+            // Create a temporary element to parse HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const title = doc.querySelector('title');
+            console.log('HTML Title:', title ? title.textContent : 'No title found');
+        }
+
+    } catch (error) {
+        console.error('Fetch error:', error);
+    }
+
+    console.log('=== Debug Test Complete ===');
+    alert('Check browser console for details!');
+}
+</script>
+
         </form>
     </div>
 
