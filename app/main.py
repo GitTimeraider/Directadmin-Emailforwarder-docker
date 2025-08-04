@@ -8,6 +8,7 @@ from app.settings import settings_bp
 from app.directadmin_api import DirectAdminAPI
 from app.config import Config
 import os
+import traceback
 
 def create_app():
     app = Flask(__name__, 
@@ -29,13 +30,34 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
 
+    # Important: Make login manager return JSON for API routes
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        if request.path.startswith('/api/') or request.path.startswith('/settings/api/'):
+            return jsonify({'error': 'Authentication required'}), 401
+        return redirect(url_for('auth.login'))
+
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # Error handlers for JSON responses
+    @app.errorhandler(404)
+    def not_found(error):
+        if request.path.startswith('/api/') or request.path.startswith('/settings/api/'):
+            return jsonify({'error': 'Not found'}), 404
+        return render_template('404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        if request.path.startswith('/api/') or request.path.startswith('/settings/api/'):
+            return jsonify({'error': 'Internal server error'}), 500
+        return render_template('500.html'), 500
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
-    app.register_blueprint(settings_bp)  # Register settings blueprint
+    app.register_blueprint(settings_bp)
 
     # Initialize database
     with app.app_context():
@@ -75,6 +97,15 @@ def create_app():
         current_user.last_login = datetime.utcnow()
         db.session.commit()
         return render_template('dashboard.html', domain=current_user.da_domain)
+
+    @app.route('/health')
+    def health_check():
+        """Health check endpoint for Docker"""
+        return jsonify({
+            'status': 'healthy',
+            'version': '1.0.0',
+            'database': 'connected' if db.engine else 'disconnected'
+        })
 
     @app.route('/api/email-accounts')
     @login_required
