@@ -304,13 +304,12 @@ class DirectAdminAPI:
                                     'address': f"{parts[0]}@{self.domain}",
                                     'destination': parts[1]
                                 })
-                        elif '@' in str(value):
-                            # Might be just the email address
+                        elif value:  # Accept ANY non-empty value
                             # Check if there's a corresponding destination key
                             dest_key = key.replace('select', 'destination')
                             if dest_key in response:
                                 forwarders.append({
-                                    'address': value,
+                                    'address': f"{value}@{self.domain}" if '@' not in str(value) else str(value),
                                     'destination': response[dest_key]
                                 })
 
@@ -326,35 +325,20 @@ class DirectAdminAPI:
                                     'destination': parts[1]
                                 })
 
-                # Format 3: Direct email keys
+                # Format 3: Direct key-value pairs (most common)
                 else:
-                    # Look for email addresses as keys
+                    # Look for all key-value pairs
                     for key, value in response.items():
                         if key.startswith('error') or key == 'domain':
                             continue
 
-                        # If key contains @ it's likely an email
-                        if '@' in str(key):
+                        # IMPORTANT: Accept ALL non-empty values as valid destinations
+                        if value:
+                            # Key is the username, value is the destination
                             forwarders.append({
-                                'address': key,
+                                'address': f"{key}@{self.domain}",
                                 'destination': str(value)
                             })
-                        # If key is a username and value contains destination
-                        elif value and '=' not in str(key):
-                            # Could be username as key, destination as value
-                            if '@' in str(value):
-                                forwarders.append({
-                                    'address': f"{key}@{self.domain}",
-                                    'destination': str(value)
-                                })
-                            # Or could be a forward entry
-                            elif '=' in str(value):
-                                parts = str(value).split('=', 1)
-                                if len(parts) == 2:
-                                    forwarders.append({
-                                        'address': f"{parts[0]}@{self.domain}" if '@' not in parts[0] else parts[0],
-                                        'destination': parts[1]
-                                    })
 
             elif isinstance(response, str):
                 print("Response is string, parsing...")
@@ -390,15 +374,25 @@ class DirectAdminAPI:
             else:
                 username = address
 
-            # IMPORTANT FIX: Ensure destination is a full email address!
+            # SMART DESTINATION HANDLING:
+            # 1. If it has @, it's already a full email address
+            # 2. If it starts with : (like :blackhole:, :fail:), it's a special destination
+            # 3. If it starts with | (pipe to script), it's a special destination
+            # 4. Otherwise, assume it's a local username and add domain
+
             if '@' not in destination:
-                # If destination doesn't have @, assume it's a local user on the same domain
-                destination = f"{destination}@{self.domain}"
+                # Check if it's a special destination
+                if destination.startswith(':') or destination.startswith('|'):
+                    # Special destination - use as-is
+                    print(f"Special destination detected: {destination}")
+                else:
+                    # Regular username - add domain
+                    destination = f"{destination}@{self.domain}"
 
             print(f"\n=== Creating Forwarder ===")
             print(f"Username: {username}")
             print(f"Domain: {self.domain}")
-            print(f"Destination (full): {destination}")
+            print(f"Destination: {destination}")
 
             # Use the correct parameter format that DirectAdmin expects
             endpoint = '/CMD_API_EMAIL_FORWARDERS'
