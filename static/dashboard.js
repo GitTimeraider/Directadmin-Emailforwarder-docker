@@ -32,7 +32,7 @@ async function loadEmailAccounts() {
     }
 }
 
-// Update destination dropdown with email accounts
+// Update destination dropdown with email accounts AND custom option
 function updateDestinationDropdown() {
     const select = document.getElementById('destination');
     if (!select) return;
@@ -58,47 +58,33 @@ function updateDestinationDropdown() {
         });
     }
 
-    // Handle destination type radio buttons (if they exist)
-    const radioButtons = document.querySelectorAll('input[name="destination_type"]');
-    radioButtons.forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateDestinationVisibility();
-        });
-    });
+    // Add separator
+    const separator = document.createElement('option');
+    separator.disabled = true;
+    separator.textContent = '──────────────';
+    select.appendChild(separator);
 
-    // Initial visibility update
-    updateDestinationVisibility();
-}
+    // Add custom option
+    const customOption = document.createElement('option');
+    customOption.value = 'custom';
+    customOption.textContent = 'Custom destination...';
+    select.appendChild(customOption);
 
-// Update visibility based on destination type selection
-function updateDestinationVisibility() {
-    const destinationType = document.querySelector('input[name="destination_type"]:checked');
-    const destSelect = document.getElementById('destination');
-    const customGroup = document.getElementById('custom-destination-group');
-    const customInput = document.getElementById('custom-destination'); // FIXED: Using kebab-case
+    // Add change event listener
+    select.addEventListener('change', function() {
+        const customInput = document.getElementById('custom-destination');
+        if (!customInput) return;
 
-    if (!destinationType) return;
-
-    const isCustom = destinationType.value === 'custom';
-
-    // Handle destination select
-    if (destSelect) {
-        destSelect.style.display = isCustom ? 'none' : 'block';
-        destSelect.required = !isCustom;
-    }
-
-    // Handle custom destination group
-    if (customGroup) {
-        customGroup.style.display = isCustom ? 'block' : 'none';
-    }
-
-    // Handle custom destination input
-    if (customInput) {
-        customInput.required = isCustom;
-        if (!isCustom) {
+        if (this.value === 'custom') {
+            customInput.style.display = 'block';
+            customInput.required = true;
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+            customInput.required = false;
             customInput.value = '';
         }
-    }
+    });
 }
 
 // Load forwarders from API
@@ -156,7 +142,7 @@ function displayForwarders() {
 
         const actionsCell = document.createElement('td');
         const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'btn-danger btn-sm';
+        deleteBtn.className = 'btn-danger';
         deleteBtn.textContent = 'Delete';
         deleteBtn.onclick = () => deleteForwarder(forwarder.address);
         actionsCell.appendChild(deleteBtn);
@@ -173,20 +159,25 @@ async function createForwarder(event) {
     event.preventDefault();
 
     const form = event.target;
-    const addressInput = form.querySelector('#alias'); // FIXED: Changed from #address to #alias
-    const destinationType = document.querySelector('input[name="destination_type"]:checked');
+    const addressInput = form.querySelector('#alias');
     const destinationSelect = form.querySelector('#destination');
-    const customDestInput = form.querySelector('#custom-destination'); // FIXED: Using kebab-case
+    const customDestInput = form.querySelector('#custom-destination');
     const submitButton = form.querySelector('button[type="submit"]');
+
+    // Validate alias
+    if (!addressInput || !addressInput.value.trim()) {
+        showMessage('Please enter an alias', 'error');
+        return;
+    }
 
     // Get the actual destination
     let destination;
 
-    if (destinationType && destinationType.value === 'custom') {
+    if (destinationSelect.value === 'custom') {
         // Using custom destination
         if (!customDestInput || !customDestInput.value.trim()) {
             showMessage('Please enter a custom destination', 'error');
-            if (customDestInput) customDestInput.focus();
+            customDestInput.focus();
             return;
         }
 
@@ -194,22 +185,15 @@ async function createForwarder(event) {
 
         // Validate the destination
         if (!isValidDestination(destination)) {
-            showMessage('Please enter a valid email address or special destination (e.g., :blackhole:, :fail:, |/path/to/script)', 'error');
+            showMessage('Please enter a valid email address or special destination (e.g., :blackhole:, :fail:)', 'error');
             customDestInput.focus();
             return;
         }
-    } else {
+    } else if (destinationSelect.value) {
         // Using existing email from dropdown
-        if (!destinationSelect || !destinationSelect.value) {
-            showMessage('Please select a destination email', 'error');
-            return;
-        }
         destination = destinationSelect.value;
-    }
-
-    // Validate alias
-    if (!addressInput || !addressInput.value.trim()) {
-        showMessage('Please enter an alias', 'error');
+    } else {
+        showMessage('Please select a destination', 'error');
         return;
     }
 
@@ -235,8 +219,11 @@ async function createForwarder(event) {
             // Clear form
             form.reset();
 
-            // Reset visibility
-            updateDestinationVisibility();
+            // Hide custom input
+            if (customDestInput) {
+                customDestInput.style.display = 'none';
+                customDestInput.required = false;
+            }
 
             // Reload forwarders
             await loadForwarders();
@@ -352,15 +339,6 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', createForwarder);
     } else {
         console.error('Create forwarder form not found');
-    }
-
-    // Set up manual refresh button (if you want one)
-    const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            loadForwarders();
-            showMessage('Forwarders refreshed', 'info');
-        });
     }
 });
 
