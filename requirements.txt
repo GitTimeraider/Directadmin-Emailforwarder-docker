@@ -1,9 +1,10 @@
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
-python-dotenv==1.0.0
-requests==2.31.0
+Werkzeug==3.0.1
 pyotp==2.9.0
-qrcode==7.4.2
-Pillow==10.1.0
+qrcode[pil]==7.4.2
+requests==2.31.0
 gunicorn==21.2.0
+python-dotenv==1.0.0
+cryptography==41.0.7
