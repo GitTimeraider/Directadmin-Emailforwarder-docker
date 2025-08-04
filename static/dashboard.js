@@ -20,6 +20,18 @@ async function loadEmailAccounts() {
     }
 }
 
+// Add this helper function near the top of the file
+function isValidDestination(destination) {
+    // Allow special destinations
+    if (destination.startsWith(':') || destination.startsWith('|')) {
+        return true;
+    }
+
+    // Otherwise check if it's a valid email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(destination);
+}
+
 // Update destination dropdown with email accounts
 function updateDestinationDropdown() {
     const select = document.getElementById('destination');
@@ -60,7 +72,7 @@ function updateDestinationDropdown() {
 
     // Handle selection changes
     select.addEventListener('change', function() {
-        const customInput = document.getElementById('customDestination');
+        const customInput = document.getElementById('custom-destination');
         if (this.value === 'custom') {
             customInput.style.display = 'block';
             customInput.required = true;
@@ -147,7 +159,7 @@ async function createForwarder(event) {
     const form = event.target;
     const addressInput = form.querySelector('#address');
     const destinationSelect = form.querySelector('#destination');
-    const customDestInput = form.querySelector('#customDestination');
+    const customDestInput = form.querySelector('#custom-estination');
     const submitButton = form.querySelector('button[type="submit"]');
 
     // Get the actual destination
@@ -155,15 +167,16 @@ async function createForwarder(event) {
     if (destination === 'custom') {
         destination = customDestInput.value.trim();
         if (!destination) {
-            showMessage('Please enter a custom email address', 'error');
+            showMessage('Please enter a custom destination', 'error');
             customDestInput.focus();
             return;
         }
     }
 
     // Validate
-    if (!addressInput.value.trim() || !destination) {
-        showMessage('Please fill in all required fields', 'error');
+    if (!isValidDestination(destination)) {
+        showMessage('Please enter a valid email address or special destination (e.g., :blackhole:, :fail:)', 'error');
+        customDestInput.focus();
         return;
     }
 
