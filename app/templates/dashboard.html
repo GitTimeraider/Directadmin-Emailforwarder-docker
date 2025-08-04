@@ -2,49 +2,291 @@
 
 {% block content %}
 <div class="container">
-    <div class="dashboard-header">
-        <h2>Email Forwarders for {{ domain }}</h2>
-        <div class="header-actions">
-            <button class="btn-refresh" onclick="loadForwarders()">Refresh</button>
-            {% if not current_user.totp_enabled %}
-            <button class="btn-secondary" onclick="window.location.href='/setup-2fa'">Enable 2FA</button>
-            {% else %}
-            <button class="btn-secondary btn-success">2FA Enabled ✓</button>
-            {% endif %}
+    <h1>Email Forwarder Management</h1>
+
+    <div id="messageContainer"></div>
+
+    {% if not current_user.has_da_config() %}
+        <div class="alert alert-warning">
+            <p>DirectAdmin is not configured. Please <a href="{{ url_for('settings.index') }}">configure your settings</a> first.</p>
         </div>
-    </div>
+    {% else %}
+        <!-- Create Forwarder Form -->
+        <div class="card">
+            <h3>Create New Forwarder</h3>
+            <form id="createForwarderForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="address">Email Address</label>
+                        <div class="input-group">
+                            <input type="text" id="address" name="address" 
+                                   placeholder="alias" required 
+                                   pattern="[a-zA-Z0-9._-]+"
+                                   title="Only letters, numbers, dots, underscores and hyphens allowed">
+                            <span class="input-addon">@{{ current_user.da_domain }}</span>
+                        </div>
+                    </div>
 
-    <div class="card">
-        <h3>Create New Forwarder</h3>
-        <form id="createForwarderForm">
-            <div class="form-group">
-                <label for="alias">Email Alias</label>
-                <div class="input-with-domain">
-                    <input type="text" id="alias" name="alias" required placeholder="alias">
-                    <span>@{{ domain }}</span>
+                    <div class="form-group">
+                        <label for="destination">Forward To</label>
+                        <select id="destination" name="destination" required>
+                            <option value="">Loading email accounts...</option>
+                        </select>
+                        <input type="email" id="customDestination" name="customDestination" 
+                               placeholder="Enter custom email address" 
+                               style="display: none; margin-top: 0.5rem;">
+                    </div>
+
+                    <div class="form-group form-actions">
+                        <button type="submit" class="btn-primary">Create Forwarder</button>
+                    </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label for="destination">Forward To</label>
-                <select id="destination" name="destination" required onchange="toggleCustomEmail()">
-                    <option value="">Loading email accounts...</option>
-                </select>
-
-                <div id="customEmailGroup" style="display: none; margin-top: 10px;">
-                    <input type="email" id="customEmail" placeholder="Enter custom email address" class="custom-email-input">
-                </div>
-            </div>
-
-            <button type="submit" class="btn-primary">Create Forwarder</button>
-        </form>
-    </div>
-
-    <div class="card">
-        <h3>Existing Forwarders</h3>
-        <div id="forwardersList" class="forwarders-list">
-            <div class="loading">Loading forwarders...</div>
+            </form>
         </div>
-    </div>
+
+        <!-- Existing Forwarders -->
+        <div class="card">
+            <h3>Existing Forwarders</h3>
+            <div class="table-container">
+                <table id="forwardersTable">
+                    <thead>
+                        <tr>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" class="loading">Loading forwarders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="refresh-info">
+                <small>Auto-refreshes every 60 seconds</small>
+            </div>
+        </div>
+    {% endif %}
 </div>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+
+/* Form Styling */
+.form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #555;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    font-size: 1rem;
+}
+
+.input-addon {
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 0 4px 4px 0;
+    color: #666;
+}
+
+select, input[type="email"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: white;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    min-width: auto;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Table Styling */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Messages */
+#messageContainer {
+    margin-bottom: 1rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+/* Loading States */
+.loading {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.no-data {
+    text-align: center;
+    color: #6c757d;
+    padding: 2rem;
+}
+
+.error-message {
+    text-align: center;
+    color: #dc3545;
+    padding: 2rem;
+}
+
+/* Utilities */
+.refresh-info {
+    text-align: right;
+    margin-top: 1rem;
+    color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-group {
+        width: 100%;
+    }
+
+    .card {
+        padding: 1rem;
+    }
+
+    th, td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 {% endblock %}
