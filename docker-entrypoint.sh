@@ -1,35 +1,59 @@
 #!/bin/bash
 set -e
 
-# If running as root, check if we need to change UID/GID
-if [ "$(id -u)" = "0" ]; then
-    # Check if USER_UID or USER_GID environment variables are set
-    if [ -n "${USER_UID}" ] || [ -n "${USER_GID}" ]; then
-        USER_UID=${USER_UID:-1000}
-        USER_GID=${USER_GID:-1000}
+# Default UID/GID
+USER_UID=${USER_UID:-1000}
+USER_GID=${USER_GID:-1000}
 
-        # Modify user if UID/GID different from default
-        if [ "${USER_UID}" != "1000" ] || [ "${USER_GID}" != "1000" ]; then
-            echo "Adjusting user to UID=${USER_UID}, GID=${USER_GID}"
+echo "Starting with UID: $USER_UID, GID: $USER_GID"
 
-            # Modify group if needed
-            if [ "${USER_GID}" != "1000" ]; then
-                groupmod -g ${USER_GID} appuser
-            fi
+# Handle special case for existing users (like nobody with UID 99)
+if id -u appuser >/dev/null 2>&1; then
+    # User exists, modify it
+    echo "Modifying existing appuser..."
+    usermod -o -u "$USER_UID" appuser || true
+    groupmod -o -g "$USER_GID" appuser || true
+else
+    # Create new user and group
+    echo "Creating new appuser..."
+    # Check if group with GID exists
+    if ! getent group "$USER_GID" >/dev/null; then
+        groupadd -g "$USER_GID" appuser
+    else
+        # Group exists, use it
+        GROUP_NAME=$(getent group "$USER_GID" | cut -d: -f1)
+        groupmod -n appuser "$GROUP_NAME" || true
+    fi
 
-            # Modify user if needed
-            if [ "${USER_UID}" != "1000" ]; then
-                usermod -u ${USER_UID} appuser
-            fi
-        fi
-
-        # Fix ownership of app directory and data
-        chown -R appuser:appuser /app
-
-        # Execute command as appuser
-        exec gosu appuser "$@"
+    # Check if user with UID exists
+    if ! id -u "$USER_UID" >/dev/null 2>&1; then
+        useradd -o -m -u "$USER_UID" -g "$USER_GID" appuser
+    else
+        # User exists, rename it
+        USER_NAME=$(getent passwd "$USER_UID" | cut -d: -f1)
+        usermod -l appuser "$USER_NAME" || true
+        usermod -g "$USER_GID" appuser || true
     fi
 fi
 
-# Execute command directly if not running as root or no UID/GID specified
-exec "$@"
+# Fix permissions for all necessary directories and files
+echo "Fixing permissions..."
+chown -R "$USER_UID:$USER_GID" /app/data 2>/dev/null || true
+chown -R "$USER_UID:$USER_GID" /app/app 2>/dev/null || true
+chown -R "$USER_UID:$USER_GID" /app/static 2>/dev/null || true
+
+# Ensure data directory exists with correct permissions
+mkdir -p /app/data
+chown "$USER_UID:$USER_GID" /app/data
+
+# Create instance directory if using Flask instance folder
+mkdir -p /app/instance
+chown "$USER_UID:$USER_GID" /app/instance
+
+# Export the user for gosu
+export USER=appuser
+
+echo "Running as UID: $(id -u appuser), GID: $(id -g appuser)"
+
+# Execute the main command as the specified user
+exec gosu "$USER_UID:$USER_GID" "$@"
