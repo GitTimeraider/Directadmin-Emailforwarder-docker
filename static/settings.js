@@ -1,14 +1,3 @@
-// Helper function to safely parse JSON
-async function parseResponse(response) {
-    const text = await response.text();
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        console.error('Response is not JSON:', text);
-        throw new Error('Server returned invalid response (not JSON)');
-    }
-}
-
 // Load current settings on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -17,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const config = await parseResponse(response);
+        const config = await response.json();
         console.log('Loaded config:', config);
 
         if (config.da_server) document.getElementById('da_server').value = config.da_server;
@@ -29,16 +18,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error('Error loading settings:', error);
-        if (error.message.includes('not JSON')) {
-            alert('Session expired. Please login again.');
-            window.location.href = '/login';
-        }
     }
 });
 
-// Handle form submission
+// Handle form submission - SAVE WITHOUT TESTING
 document.getElementById('daConfigForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const saveButton = e.target.querySelector('button[type="submit"]');
+    const originalText = saveButton.textContent;
+    saveButton.textContent = 'Saving...';
+    saveButton.disabled = true;
 
     const formData = {
         da_server: document.getElementById('da_server').value.trim(),
@@ -47,7 +37,7 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
         da_domain: document.getElementById('da_domain').value.trim()
     };
 
-    console.log('Submitting settings:', { ...formData, da_password: '***' });
+    console.log('Submitting settings (no connection test):', { ...formData, da_password: '***' });
 
     try {
         const response = await fetch('/settings/api/da-config', {
@@ -55,60 +45,68 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'same-origin',  // Important for cookies!
+            credentials: 'same-origin',
             body: JSON.stringify(formData)
         });
 
-        const result = await parseResponse(response);
+        const result = await response.json();
         console.log('Save response:', result);
 
         if (response.ok && result.success) {
-            alert('Settings saved successfully!');
+            // Show success message
+            showMessage('success', result.message || 'Settings saved successfully!');
+
+            // Clear password field
             document.getElementById('da_password').value = '';
             document.getElementById('da_password').placeholder = 'Password is set (leave empty to keep current)';
 
+            // Optional: Redirect after a delay
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                if (confirm('Settings saved! Go to dashboard now?')) {
+                    window.location.href = '/dashboard';
+                }
             }, 1000);
         } else {
-            console.error('Save failed:', result);
-            alert(result.error || 'Failed to save settings');
+            showMessage('error', result.error || 'Failed to save settings');
+
+            // Highlight missing fields if any
+            if (result.missing_fields) {
+                result.missing_fields.forEach(field => {
+                    document.getElementById(field).classList.add('error');
+                });
+            }
         }
     } catch (error) {
         console.error('Error saving settings:', error);
-        alert('Error saving settings: ' + error.message);
+        showMessage('error', 'Error saving settings: ' + error.message);
+    } finally {
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
     }
 });
 
-// Test connection function
+// Test connection function - COMPLETELY SEPARATE
 async function testConnection() {
+    const testButton = event.target;
+    const originalText = testButton.textContent;
+    testButton.textContent = 'Testing...';
+    testButton.disabled = true;
+
     const formData = {
         da_server: document.getElementById('da_server').value.trim(),
         da_username: document.getElementById('da_username').value.trim(),
-        da_password: document.getElementById('da_password').value
+        da_password: document.getElementById('da_password').value,
+        da_domain: document.getElementById('da_domain').value.trim()
     };
 
     if (!formData.da_server || !formData.da_username) {
-        alert('Please enter server URL and username');
-        return;
-    }
-
-    // Ensure URL has protocol
-    if (!formData.da_server.startsWith('http://') && !formData.da_server.startsWith('https://')) {
-        formData.da_server = 'https://' + formData.da_server;
-        document.getElementById('da_server').value = formData.da_server;
-    }
-
-    if (!formData.da_password && !confirm('No password entered. Test with saved password?')) {
+        showMessage('warning', 'Please enter server URL and username to test');
+        testButton.textContent = originalText;
+        testButton.disabled = false;
         return;
     }
 
     console.log('Testing connection to:', formData.da_server);
-
-    // Show loading state
-    const originalText = event.target.textContent;
-    event.target.textContent = 'Testing...';
-    event.target.disabled = true;
 
     try {
         const response = await fetch('/settings/api/test-connection', {
@@ -116,24 +114,48 @@ async function testConnection() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'same-origin',  // Important!
+            credentials: 'same-origin',
             body: JSON.stringify(formData)
         });
 
-        const result = await parseResponse(response);
+        const result = await response.json();
         console.log('Test response:', result);
 
-        if (response.ok && result.success) {
-            alert('✓ ' + result.message);
+        if (result.success) {
+            showMessage('success', '✓ ' + result.message);
         } else {
-            alert('✗ Connection failed: ' + (result.error || 'Unknown error'));
+            showMessage('warning', '✗ Connection failed: ' + (result.error || 'Unknown error') + '\nYou can still save these settings.');
         }
     } catch (error) {
         console.error('Error testing connection:', error);
-        alert('✗ Connection test failed: ' + error.message);
+        showMessage('error', '✗ Test error: ' + error.message + '\nYou can still save these settings.');
     } finally {
-        // Restore button state
-        event.target.textContent = originalText;
-        event.target.disabled = false;
+        testButton.textContent = originalText;
+        testButton.disabled = false;
     }
 }
+
+// Helper function to show messages
+function showMessage(type, message) {
+    // Remove any existing messages
+    const existingMsg = document.querySelector('.message');
+    if (existingMsg) existingMsg.remove();
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message message-${type}`;
+    msgDiv.textContent = message;
+
+    // Insert after form title
+    const formTitle = document.querySelector('h2');
+    formTitle.parentNode.insertBefore(msgDiv, formTitle.nextSibling);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => msgDiv.remove(), 5000);
+}
+
+// Remove error class on input
+document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', () => {
+        input.classList.remove('error');
+    });
+});
