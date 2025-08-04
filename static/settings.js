@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Handle form submission - SAVE WITHOUT TESTING
+// Replace the form submission handler with this debug version
 document.getElementById('daConfigForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -37,30 +37,53 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
         da_domain: document.getElementById('da_domain').value.trim()
     };
 
-    console.log('Submitting settings (no connection test):', { ...formData, da_password: '***' });
+    console.log('=== SAVE DEBUG ===');
+    console.log('Form data:', formData);
+    console.log('JSON stringified:', JSON.stringify(formData));
 
     try {
         const response = await fetch('/settings/api/da-config', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'  // Added this
             },
             credentials: 'same-origin',
             body: JSON.stringify(formData)
         });
 
-        const result = await response.json();
-        console.log('Save response:', result);
+        // Get raw response first
+        const contentType = response.headers.get('content-type');
+        console.log('Response Content-Type:', contentType);
+        console.log('Response Status:', response.status);
+
+        const responseText = await response.text();
+        console.log('Raw response (first 200 chars):', responseText.substring(0, 200));
+
+        let result;
+        try {
+            result = JSON.parse(responseText);
+            console.log('Parsed response:', result);
+        } catch (parseError) {
+            console.error('Failed to parse JSON:', parseError);
+            if (responseText.includes('<!DOCTYPE')) {
+                console.error('Got HTML instead of JSON!');
+                showMessage('error', 'Server returned HTML instead of JSON. Check if you are logged in.');
+
+                // If we got a login page, redirect
+                if (responseText.includes('login') || response.status === 401) {
+                    window.location.href = '/login';
+                }
+                return;
+            }
+            throw new Error('Server returned invalid JSON');
+        }
 
         if (response.ok && result.success) {
-            // Show success message
             showMessage('success', result.message || 'Settings saved successfully!');
-
-            // Clear password field
             document.getElementById('da_password').value = '';
             document.getElementById('da_password').placeholder = 'Password is set (leave empty to keep current)';
 
-            // Optional: Redirect after a delay
             setTimeout(() => {
                 if (confirm('Settings saved! Go to dashboard now?')) {
                     window.location.href = '/dashboard';
@@ -68,8 +91,6 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
             }, 1000);
         } else {
             showMessage('error', result.error || 'Failed to save settings');
-
-            // Highlight missing fields if any
             if (result.missing_fields) {
                 result.missing_fields.forEach(field => {
                     document.getElementById(field).classList.add('error');
@@ -77,13 +98,15 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
             }
         }
     } catch (error) {
-        console.error('Error saving settings:', error);
+        console.error('Save error:', error);
         showMessage('error', 'Error saving settings: ' + error.message);
     } finally {
         saveButton.textContent = originalText;
         saveButton.disabled = false;
+        console.log('=== END SAVE DEBUG ===');
     }
 });
+
 
 // Test connection function - COMPLETELY SEPARATE
 async function testConnection() {
