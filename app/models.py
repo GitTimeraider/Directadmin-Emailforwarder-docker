@@ -30,9 +30,13 @@ class User(UserMixin, db.Model):
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
-        # Generate encryption key for this user
+        # Generate encryption key for this user if not provided
         if not self.encryption_key:
-            self.encryption_key = Fernet.generate_key().decode()
+            self.generate_encryption_key()
+
+    def generate_encryption_key(self):
+        """Generate a new encryption key"""
+        self.encryption_key = Fernet.generate_key().decode()
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -42,9 +46,16 @@ class User(UserMixin, db.Model):
 
     def set_da_password(self, password):
         """Encrypt and store DirectAdmin password"""
+        if not self.encryption_key:
+            self.generate_encryption_key()
+
         if password:
-            f = Fernet(self.encryption_key.encode())
-            self.da_password_encrypted = f.encrypt(password.encode()).decode()
+            try:
+                f = Fernet(self.encryption_key.encode())
+                self.da_password_encrypted = f.encrypt(password.encode()).decode()
+            except Exception as e:
+                print(f"Error encrypting password: {e}")
+                raise
         else:
             self.da_password_encrypted = None
 
@@ -54,7 +65,8 @@ class User(UserMixin, db.Model):
             try:
                 f = Fernet(self.encryption_key.encode())
                 return f.decrypt(self.da_password_encrypted.encode()).decode()
-            except:
+            except Exception as e:
+                print(f"Error decrypting password: {e}")
                 return None
         return None
 
