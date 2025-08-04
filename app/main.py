@@ -41,6 +41,14 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # NOW we can use @app decorators - app exists here!
+    @app.before_request
+    def check_session():
+        """Ensure session is valid for API routes"""
+        if request.path.startswith(('/api/', '/settings/api/', '/admin/api/')):
+            if not current_user.is_authenticated:
+                return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
+
     # Error handlers for JSON responses
     @app.errorhandler(404)
     def not_found(error):
@@ -90,6 +98,8 @@ def create_app():
     def dashboard():
         # Check if user has configured DirectAdmin settings
         if not current_user.has_da_config():
+            # Import flash here to avoid circular imports
+            from flask import flash
             flash('Please configure your DirectAdmin settings first.', 'warning')
             return redirect(url_for('settings.index'))
 
@@ -180,15 +190,7 @@ def create_app():
             print(f"Error deleting forwarder: {e}")
             return jsonify({'error': str(e)}), 500
 
-    # Add this after creating the app
-@app.before_request
-def check_session():
-    """Ensure session is valid for API routes"""
-    if request.path.startswith(('/api/', '/settings/api/', '/admin/api/')):
-        if not current_user.is_authenticated:
-            return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
-
-    return app
+    return app  # Don't forget to return the app!
 
 if __name__ == '__main__':
     app = create_app()
