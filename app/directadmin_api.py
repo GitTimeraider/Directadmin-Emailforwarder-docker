@@ -13,8 +13,7 @@ class DirectAdminAPI:
         self.password = password
         self.session = requests.Session()
 
-    def _make_request(self, endpoint, data=None):
-    """Make request to DirectAdmin API with better parsing"""
+def _make_request(self, endpoint, data=None):
     try:
         url = f"{self.server}{endpoint}"
 
