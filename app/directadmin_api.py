@@ -280,45 +280,91 @@ class DirectAdminAPI:
             forwarders = []
 
             if isinstance(response, dict):
-                # Look for any sign of forwarders in the response
-                for key, value in response.items():
-                    print(f"Processing key: '{key}' with value: '{value}'")
+                # DirectAdmin commonly uses these formats for forwarders:
 
-                    if key.startswith('error'):
-                        print(f"Found error: {value}")
-                        continue
+                # Format 1: select0, select1, etc. (common for lists)
+                select_keys = [k for k in response.keys() if k.startswith('select')]
+                if select_keys:
+                    print(f"Found select keys: {select_keys}")
+                    for key in select_keys:
+                        value = response[key]
+                        if '=' in str(value):
+                            # Format: alias=destination
+                            parts = str(value).split('=', 1)
+                            if len(parts) == 2:
+                                forwarders.append({
+                                    'address': f"{parts[0]}@{self.domain}",
+                                    'destination': parts[1]
+                                })
+                        elif '@' in str(value):
+                            # Might be just the email address
+                            # Check if there's a corresponding destination key
+                            dest_key = key.replace('select', 'destination')
+                            if dest_key in response:
+                                forwarders.append({
+                                    'address': value,
+                                    'destination': response[dest_key]
+                                })
 
-                    # Various possible formats
-                    if '@' in str(key):
-                        forwarders.append({
-                            'address': key,
-                            'destination': str(value)
-                        })
-                    elif 'forward' in str(key).lower():
-                        print(f"Found forward-related key: {key} = {value}")
-                    elif value and '=' in str(value):
-                        parts = str(value).split('=', 1)
+                # Format 2: list[] array
+                elif 'list' in response and isinstance(response['list'], list):
+                    print("Found list array")
+                    for item in response['list']:
+                        if '=' in str(item):
+                            parts = str(item).split('=', 1)
+                            if len(parts) == 2:
+                                forwarders.append({
+                                    'address': f"{parts[0]}@{self.domain}" if '@' not in parts[0] else parts[0],
+                                    'destination': parts[1]
+                                })
+
+                # Format 3: Direct email keys
+                else:
+                    # Look for email addresses as keys
+                    for key, value in response.items():
+                        if key.startswith('error') or key == 'domain':
+                            continue
+
+                        # If key contains @ it's likely an email
+                        if '@' in str(key):
+                            forwarders.append({
+                                'address': key,
+                                'destination': str(value)
+                            })
+                        # If key is a username and value contains destination
+                        elif value and '=' not in str(key):
+                            # Could be username as key, destination as value
+                            if '@' in str(value):
+                                forwarders.append({
+                                    'address': f"{key}@{self.domain}",
+                                    'destination': str(value)
+                                })
+                            # Or could be a forward entry
+                            elif '=' in str(value):
+                                parts = str(value).split('=', 1)
+                                if len(parts) == 2:
+                                    forwarders.append({
+                                        'address': f"{parts[0]}@{self.domain}" if '@' not in parts[0] else parts[0],
+                                        'destination': parts[1]
+                                    })
+
+            elif isinstance(response, str):
+                print("Response is string, parsing...")
+                lines = response.strip().split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if '=' in line:
+                        parts = line.split('=', 1)
                         if len(parts) == 2:
                             forwarders.append({
-                                'address': parts[0],
+                                'address': f"{parts[0]}@{self.domain}" if '@' not in parts[0] else parts[0],
                                 'destination': parts[1]
                             })
 
-            elif isinstance(response, str):
-                print("Response is string, checking for forwarders...")
-                # Maybe it's a different format
-                if '@' in response:
-                    lines = response.strip().split('\n')
-                    for line in lines:
-                        if '=' in line and '@' in line:
-                            parts = line.split('=', 1)
-                            if len(parts) == 2:
-                                forwarders.append({
-                                    'address': parts[0].strip(),
-                                    'destination': parts[1].strip()
-                                })
+            print(f"\nParsed {len(forwarders)} forwarders:")
+            for f in forwarders:
+                print(f"  {f['address']} -> {f['destination']}")
 
-            print(f"\nParsed {len(forwarders)} forwarders")
             return forwarders
 
         except Exception as e:
@@ -330,41 +376,86 @@ class DirectAdminAPI:
     def create_forwarder(self, address, destination):
         """Create an email forwarder"""
         try:
-            # Ensure full email addresses
-            if '@' not in address:
-                address = f"{address}@{self.domain}"
+            # Ensure we have just the username part
+            if '@' in address:
+                username = address.split('@')[0]
+            else:
+                username = address
 
-            # Extract username from address
-            username = address.split('@')[0]
-
-            endpoint = '/CMD_API_EMAIL_FORWARDERS'
-            data = {
-                'domain': self.domain,
-                'action': 'create',
-                'user': username,
-                'email': destination
-            }
+            # Various parameter formats DirectAdmin might expect
+            param_sets = [
+                # Format 1: Standard 【1】
+                {
+                    'domain': self.domain,
+                    'action': 'create',
+                    'user': username,
+                    'email': destination
+                },
+                # Format 2: With select0
+                {
+                    'domain': self.domain,
+                    'action': 'create',
+                    'select0': username,
+                    'email': destination
+                },
+                # Format 3: Forward specific
+                {
+                    'domain': self.domain,
+                    'action': 'create',
+                    'forward': f"{username}={destination}"
+                }
+            ]
 
             print(f"\n=== Creating Forwarder ===")
-            print(f"Address: {address} -> {destination}")
+            print(f"Username: {username}")
+            print(f"Domain: {self.domain}")
+            print(f"Destination: {destination}")
 
-            response = self._make_request(endpoint, data)
+            response = None
+            for i, data in enumerate(param_sets):
+                print(f"\nTrying parameter set {i+1}: {data}")
 
-            if response:
-                # Check for success
-                if isinstance(response, dict):
-                    if 'error' in response:
-                        return False, response.get('error', 'Unknown error')
-                    elif 'success' in response or 'created' in response:
-                        return True, f"Forwarder {address} → {destination} created successfully"
+                endpoint = '/CMD_API_EMAIL_FORWARDERS'
+                response = self._make_request(endpoint, data, method='POST')
 
-                # If no error, assume success
-                return True, f"Forwarder {address} → {destination} created"
+                if response:
+                    print(f"Got response: {response}")
 
-            return False, "Failed to create forwarder"
+                    if isinstance(response, dict):
+                        # Check for errors
+                        if 'error' in response:
+                            error_msg = response.get('error', 'Unknown error')
+                            error_code = response.get('error_code', '')
+                            details = response.get('details', '')
+                            text = response.get('text', '')
+
+                            # API error 1 often means permission or format issues 【2】
+                            if error_msg == '1' or error_code == '1':
+                                print(f"API Error 1 detected. Details: {details}, Text: {text}")
+                                # Try next parameter set
+                                continue
+                            else:
+                                return False, f"Error: {error_msg} {details} {text}".strip()
+
+                        # Check for success indicators
+                        if any(key in response for key in ['success', 'created', 'added']):
+                            return True, f"Forwarder {username}@{self.domain} → {destination} created"
+
+                        # If no error and no explicit success, might still be OK
+                        if not any(key.startswith('error') for key in response.keys()):
+                            return True, f"Forwarder {username}@{self.domain} → {destination} created"
+
+                    elif isinstance(response, str):
+                        if 'error' not in response.lower():
+                            return True, f"Forwarder {username}@{self.domain} → {destination} created"
+
+            # If all parameter sets failed
+            return False, "Failed to create forwarder. Check DirectAdmin logs for details."
 
         except Exception as e:
             print(f"Error creating forwarder: {e}")
+            import traceback
+            traceback.print_exc()
             return False, str(e)
 
     def delete_forwarder(self, address):
