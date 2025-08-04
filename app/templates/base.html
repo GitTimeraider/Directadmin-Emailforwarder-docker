@@ -41,6 +41,7 @@
 
     {% block content %}{% endblock %}
 
-    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='base.js') }}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
