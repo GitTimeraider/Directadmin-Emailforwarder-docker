@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_login import LoginManager, login_required, current_user
+from datetime import datetime
 from app.models import db, User
 from app.auth import auth_bp
+from app.admin import admin_bp  # Add this import
 from app.directadmin_api import DirectAdminAPI
 from app.config import Config
 import os
@@ -21,12 +23,13 @@ def create_app():
         return User.query.get(int(user_id))
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)  # Register admin blueprint
 
     with app.app_context():
         db.create_all()
-        # Create default user if none exists
+        # Create default admin user if none exists
         if User.query.count() == 0:
-            user = User(username='admin')
+            user = User(username='admin', is_admin=True)
             user.set_password('changeme')
             db.session.add(user)
             db.session.commit()
@@ -39,6 +42,9 @@ def create_app():
     @app.route('/dashboard')
     @login_required
     def dashboard():
+        # Update last login
+        current_user.last_login = datetime.utcnow()
+        db.session.commit()
         return render_template('dashboard.html', domain=Config.DA_DOMAIN)
 
     @app.route('/api/email-accounts')
