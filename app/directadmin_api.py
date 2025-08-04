@@ -64,13 +64,7 @@ class DirectAdminAPI:
                 text = response.text.strip()
                 print(f"Raw response: {text[:500]}...")  # First 500 chars for debugging
 
-                # Check for error
-                if text.startswith('error=') or 'error=' in text:
-                    error_msg = text.split('error=')[1].split('&')[0]
-                    print(f"API Error: {urllib.parse.unquote(error_msg)}")
-                    return None
-
-                # Parse different response formats
+                # Parse response into dictionary first
                 result = {}
 
                 # Format 1: URL encoded (key=value&key2=value2)
@@ -89,12 +83,26 @@ class DirectAdminAPI:
                             key, value = pair.split('=', 1)
                             result[urllib.parse.unquote(key)] = urllib.parse.unquote(value)
 
+                    # IMPORTANT: Check if this is an error response
+                    # error=0 means SUCCESS in DirectAdmin!
+                    if 'error' in result:
+                        error_code = result.get('error', '1')
+                        if error_code != '0':  # Only treat non-zero as error
+                            error_msg = result.get('text', 'Unknown error')
+                            print(f"API Error {error_code}: {error_msg}")
+                            return None
+                        else:
+                            print(f"Success (error=0): {result.get('text', 'Operation completed')}")
+
+                    return result
+
                 # Format 2: Line-based (key=value\nkey2=value2)
                 elif '\n' in text and '=' in text:
                     for line in text.split('\n'):
                         if '=' in line:
                             key, value = line.split('=', 1)
                             result[key.strip()] = value.strip()
+                    return result
 
                 # Format 3: Simple list (one item per line)
                 elif '\n' in text and '@' in text:
@@ -390,7 +398,7 @@ class DirectAdminAPI:
             print(f"\n=== Creating Forwarder ===")
             print(f"Username: {username}")
             print(f"Domain: {self.domain}")
-            print(f"Destination (full): {destination}")  # Show the full address
+            print(f"Destination (full): {destination}")
 
             # Use the correct parameter format that DirectAdmin expects
             endpoint = '/CMD_API_EMAIL_FORWARDERS'
@@ -398,7 +406,7 @@ class DirectAdminAPI:
                 'domain': self.domain,
                 'action': 'create',
                 'user': username,
-                'email': destination  # This MUST be a full email address
+                'email': destination
             }
 
             print(f"Sending parameters: {data}")
@@ -409,33 +417,23 @@ class DirectAdminAPI:
                 print(f"Got response: {response}")
 
                 if isinstance(response, dict):
-                    # Check for errors
-                    if 'error' in response:
-                        error_msg = response.get('error', 'Unknown error')
-                        details = response.get('details', '')
-                        text = response.get('text', '')
+                    # Check the error code properly
+                    error_code = response.get('error', '1')
 
-                        if details:
-                            # Parse URL-encoded details
-                            details = urllib.parse.unquote(details)
-                        if text:
-                            text = urllib.parse.unquote(text)
-
-                        # Provide meaningful error message
-                        if 'invalid email' in details.lower():
-                            return False, f"Invalid email address format: {details}"
-                        elif details or text:
-                            return False, f"{text}: {details}" if text and details else (text or details)
-                        else:
-                            return False, f"Error: {error_msg}"
-
-                    # Check for success indicators
-                    if any(key in response for key in ['success', 'created', 'added']):
+                    # error=0 means SUCCESS!
+                    if error_code == '0' or error_code == 0:
                         return True, f"Forwarder {username}@{self.domain} → {destination} created successfully"
 
-                    # If no error and no explicit success, might still be OK
-                    if not any(key.startswith('error') for key in response.keys()):
-                        return True, f"Forwarder {username}@{self.domain} → {destination} created"
+                    # Non-zero error code means actual error
+                    details = response.get('details', '')
+                    text = response.get('text', '')
+
+                    if details:
+                        details = urllib.parse.unquote(details)
+                    if text:
+                        text = urllib.parse.unquote(text)
+
+                    return False, f"{text}: {details}" if text and details else "Failed to create forwarder"
 
                 elif isinstance(response, str):
                     if 'error' not in response.lower():
@@ -473,15 +471,28 @@ class DirectAdminAPI:
             response = self._make_request(endpoint, data)
 
             if response:
-                # Check for success
                 if isinstance(response, dict):
-                    if 'error' in response:
-                        return False, response.get('error', 'Unknown error')
-                    elif 'success' in response or 'deleted' in response:
+                    # Check the error code properly
+                    error_code = response.get('error', '1')
+
+                    # error=0 means SUCCESS!
+                    if error_code == '0' or error_code == 0:
                         return True, f"Forwarder {address} deleted successfully"
 
-                # If no error, assume success
-                return True, f"Forwarder {address} deleted"
+                    # Non-zero error code means actual error
+                    text = response.get('text', 'Unknown error')
+                    details = response.get('details', '')
+
+                    if text:
+                        text = urllib.parse.unquote(text)
+                    if details:
+                        details = urllib.parse.unquote(details)
+
+                    return False, f"{text}: {details}" if details else text
+
+                elif isinstance(response, str):
+                    if 'error' not in response.lower():
+                        return True, f"Forwarder {address} deleted"
 
             return False, "Failed to delete forwarder"
 
