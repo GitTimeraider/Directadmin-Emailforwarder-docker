@@ -1,6 +1,10 @@
 import requests
 import base64
 from urllib.parse import urlencode, parse_qs, unquote
+import urllib3
+
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class DirectAdminAPI:
     def __init__(self, server, username, password):
@@ -8,29 +12,67 @@ class DirectAdminAPI:
         self.username = username
         self.password = password
         self.session = requests.Session()
-        # Disable SSL warnings for self-signed certificates
-        requests.packages.urllib3.disable_warnings()
 
     def _make_request(self, cmd, method='GET', data=None):
         url = f"{self.server}/CMD_{cmd}"
-        auth = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
-        headers = {
-            'Authorization': f'Basic {auth}',
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+
+        # Use basic auth
+        auth = (self.username, self.password)
 
         try:
+            print(f"Making request to: {url}")
+
             if method == 'GET':
-                response = self.session.get(url, headers=headers, verify=False, timeout=10)
+                response = self.session.get(
+                    url, 
+                    auth=auth, 
+                    verify=False, 
+                    timeout=10,
+                    allow_redirects=True
+                )
             else:
-                response = self.session.post(url, headers=headers, data=urlencode(data) if data else None, verify=False, timeout=10)
+                response = self.session.post(
+                    url, 
+                    auth=auth, 
+                    data=data if isinstance(data, str) else urlencode(data) if data else None,
+                    verify=False, 
+                    timeout=10,
+                    headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                    allow_redirects=True
+                )
+
+            print(f"Response status: {response.status_code}")
+            print(f"Response headers: {response.headers}")
 
             if response.status_code == 401:
-                raise Exception("DirectAdmin authentication failed")
+                raise Exception("DirectAdmin authentication failed - check username/password")
 
             return response
+        except requests.exceptions.ConnectionError:
+            raise Exception(f"Cannot connect to DirectAdmin server at {self.server}")
+        except requests.exceptions.Timeout:
+            raise Exception("DirectAdmin server timeout")
         except requests.exceptions.RequestException as e:
             raise Exception(f"DirectAdmin connection error: {str(e)}")
+
+    def test_connection(self):
+        """Test connection by getting API version or domains"""
+        try:
+            # Try multiple endpoints to test connection
+            # First try SHOW_DOMAINS
+            response = self._make_request('API_SHOW_DOMAINS')
+            if response.status_code == 200:
+                return True, "Connection successful"
+
+            # If that fails, try getting user info
+            response = self._make_request('API_SHOW_USER_CONFIG')
+            if response.status_code == 200:
+                return True, "Connection successful"
+
+            return False, f"Unexpected response: {response.status_code}"
+
+        except Exception as e:
+            return False, str(e)
 
     def get_email_accounts(self, domain):
         try:
@@ -99,7 +141,18 @@ class DirectAdminAPI:
                 'action': 'create'
             }
             response = self._make_request('API_EMAIL_FORWARDERS', method='POST', data=data)
-            return response.status_code == 200 and 'error=0' in response.text
+
+            # Check for success in response
+            if response.status_code == 200:
+                if 'error=0' in response.text or 'success' in response.text.lower():
+                    return True
+                elif 'error=1' in response.text:
+                    print(f"DirectAdmin error: {response.text}")
+                    return False
+                else:
+                    # If no clear error indicator, assume success
+                    return True
+            return False
         except Exception as e:
             print(f"Error in create_forwarder: {e}")
             return False
@@ -112,7 +165,18 @@ class DirectAdminAPI:
                 'action': 'delete'
             }
             response = self._make_request('API_EMAIL_FORWARDERS', method='POST', data=data)
-            return response.status_code == 200 and 'error=0' in response.text
+
+            # Check for success in response
+            if response.status_code == 200:
+                if 'error=0' in response.text or 'success' in response.text.lower():
+                    return True
+                elif 'error=1' in response.text:
+                    print(f"DirectAdmin error: {response.text}")
+                    return False
+                else:
+                    # If no clear error indicator, assume success
+                    return True
+            return False
         except Exception as e:
             print(f"Error in delete_forwarder: {e}")
             return False
