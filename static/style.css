@@ -485,3 +485,26 @@ select optgroup {
     border-color: #c3e6cb;
 }
 
+/* Error Pages */
+.error-page {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.error-page h1 {
+    font-size: 6rem;
+    color: #dc3545;
+    margin-bottom: 1rem;
+}
+
+.error-page h2 {
+    font-size: 2rem;
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+.error-page p {
+    color: #6c757d;
+    margin-bottom: 2rem;
+}
+
