@@ -18,24 +18,24 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY --chown=appuser:appuser . .
+# Copy application code with correct ownership
+COPY --chown=appuser:appuser app /app/app
+COPY --chown=appuser:appuser static /app/static
+COPY --chown=appuser:appuser docker-entrypoint.sh /usr/local/bin/
 
-# Create volume for database with proper permissions
+# Create data directory with proper permissions
 RUN mkdir -p /app/data && chown -R appuser:appuser /app/data
-VOLUME ["/app/data"]
+
+# Make entrypoint executable
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set environment variables
 ENV FLASK_APP=app.main:create_app
 ENV PYTHONUNBUFFERED=1
-ENV USER_UID=${USER_UID}
-ENV USER_GID=${USER_GID}
+ENV PYTHONPATH=/app
 
-# Copy and set permissions for entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
+VOLUME ["/app/data"]
 EXPOSE 5000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "app.main:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app.main:create_app()"]
