@@ -2,7 +2,12 @@ version: '3.8'
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    image: ghcr.io/${GITHUB_USERNAME}/directadmin-email-forwarder:latest
     ports:
       - "5000:5000"
     environment:
@@ -12,6 +17,8 @@ services:
       - DA_PASSWORD=${DA_PASSWORD}
       - DA_DOMAIN=${DA_DOMAIN}
       - DATABASE_URL=sqlite:////app/data/users.db
+      - USER_UID=${USER_UID:-1000}
+      - USER_GID=${USER_GID:-1000}
     volumes:
       - ./data:/app/data
     restart: unless-stopped
