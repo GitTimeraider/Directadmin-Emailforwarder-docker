@@ -13,51 +13,70 @@ class DirectAdminAPI:
         self.password = password
         self.session = requests.Session()
 
-    def _make_request(self, cmd, method='GET', data=None):
-        url = f"{self.server}/CMD_{cmd}"
+    def _make_request(self, endpoint, data=None):
+    """Make request to DirectAdmin API with better parsing"""
+    try:
+        url = f"{self.server}{endpoint}"
 
-        # Use basic auth
-        auth = (self.username, self.password)
+        # For GET requests (like listing)
+        if data and data.get('action') == 'list':
+            response = requests.get(
+                url,
+                params=data,
+                auth=(self.username, self.password),
+                verify=False,
+                timeout=10
+            )
+        else:
+            # For POST requests
+            response = requests.post(
+                url,
+                data=data,
+                auth=(self.username, self.password),
+                verify=False,
+                timeout=10
+            )
 
-        try:
-            print(f"Making request to: {url}")
+        print(f"API Response Status: {response.status_code}")
+        print(f"API Response Headers: {response.headers}")
 
-            if method == 'GET':
-                response = self.session.get(
-                    url, 
-                    auth=auth, 
-                    verify=False, 
-                    timeout=10,
-                    allow_redirects=False  # Don't follow redirects
-                )
+        if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '')
+
+            # Try to parse as JSON first
+            if 'json' in content_type:
+                return response.json()
             else:
-                response = self.session.post(
-                    url, 
-                    auth=auth, 
-                    data=data if isinstance(data, str) else urlencode(data) if data else None,
-                    verify=False, 
-                    timeout=10,
-                    headers={'Content-Type': 'application/x-www-form-urlencoded'},
-                    allow_redirects=False  # Don't follow redirects
-                )
+                # Parse DirectAdmin's key=value format
+                text = response.text.strip()
+                result = {}
 
-            print(f"Response status: {response.status_code}")
+                # Handle URL encoded responses
+                if 'urlencoded' in content_type or '=' in text:
+                    import urllib.parse
 
-            if response.status_code == 401:
-                raise Exception("Authentication failed - invalid username or password")
-            elif response.status_code == 302 or response.status_code == 301:
-                # DirectAdmin might redirect on auth failure
-                raise Exception("Authentication required - check credentials")
+                    # For email lists, DA often returns: list[]=email1&list[]=email2
+                    if 'list[]=' in text:
+                        emails = []
+                        for part in text.split('&'):
+                            if part.startswith('list[]='):
+                                email = urllib.parse.unquote(part[7:])
+                                emails.append(email)
+                        return {'emails': emails}
+                    else:
+                        # Standard key=value parsing
+                        for line in text.split('\n'):
+                            if '=' in line:
+                                key, value = line.split('=', 1)
+                                result[urllib.parse.unquote(key)] = urllib.parse.unquote(value)
 
-            return response
-        except requests.exceptions.ConnectionError:
-            raise Exception(f"Cannot connect to server at {self.server}")
-        except requests.exceptions.Timeout:
-            raise Exception("Connection timeout - server not responding")
-        except requests.exceptions.SSLError:
-            raise Exception("SSL error - try using http:// instead of https://")
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Connection error: {str(e)}")
+                return result if result else text
+
+        return None
+
+    except Exception as e:
+        print(f"API request error: {e}")
+        return None
 
     def test_connection(self):
         """Test connection with a simple API call"""
