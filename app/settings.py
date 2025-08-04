@@ -12,19 +12,27 @@ def index():
     return render_template('settings.html')
 
 @settings_bp.route('/api/da-config', methods=['GET'])
-@login_required
+@login_required  
 def get_da_config():
-    return jsonify({
-        'da_server': current_user.da_server or '',
-        'da_username': current_user.da_username or '',
-        'da_domain': current_user.da_domain or '',
-        'has_password': bool(current_user.da_password_encrypted)
-    })
+    try:
+        return jsonify({
+            'da_server': current_user.da_server or '',
+            'da_username': current_user.da_username or '',
+            'da_domain': current_user.da_domain or '',
+            'has_password': bool(current_user.da_password_encrypted)
+        })
+    except Exception as e:
+        print(f"Error getting DA config: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @settings_bp.route('/api/da-config', methods=['POST'])
 @login_required
 def update_da_config():
     try:
+        # Ensure we have JSON data
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
         data = request.json
         print(f"Received settings update: {data}")  # Debug log
 
@@ -33,6 +41,10 @@ def update_da_config():
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
+
+        # Ensure user has encryption key
+        if not current_user.encryption_key:
+            current_user.generate_encryption_key()
 
         # Update DirectAdmin settings
         current_user.da_server = data['da_server'].rstrip('/')
@@ -60,6 +72,10 @@ def update_da_config():
 def test_connection():
     """Test DirectAdmin connection with provided credentials"""
     try:
+        # Ensure we have JSON data
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
         data = request.json
         print(f"Testing connection with: {data.get('da_server')}")  # Debug log
 
@@ -70,6 +86,10 @@ def test_connection():
 
         if not all([server, username, password]):
             return jsonify({'error': 'Missing credentials'}), 400
+
+        # Ensure server URL is properly formatted
+        if not server.startswith(('http://', 'https://')):
+            server = 'https://' + server
 
         # Test connection
         api = DirectAdminAPI(server, username, password)
