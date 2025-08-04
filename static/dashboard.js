@@ -159,7 +159,7 @@ async function createForwarder(event) {
     const form = event.target;
     const addressInput = form.querySelector('#address');
     const destinationSelect = form.querySelector('#destination');
-    const customDestInput = form.querySelector('#custom-estination');
+    const customDestInput = form.querySelector('#custom-destination');
     const submitButton = form.querySelector('button[type="submit"]');
 
     // Get the actual destination
