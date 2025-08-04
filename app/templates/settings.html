@@ -33,10 +33,16 @@
                 <small>The domain you want to manage forwarders for</small>
             </div>
 
+<!-- Update the button section -->
             <div class="form-actions">
-                <button type="button" class="btn-secondary" onclick="testConnection()">Test Connection</button>
                 <button type="submit" class="btn-primary">Save Settings</button>
+                <button type="button" onclick="testConnection()" class="btn-secondary">Test Connection</button>
             </div>
+
+<p class="help-text">
+    <small>💡 Tip: You can save settings even if the connection test fails. This is useful when setting up or if the server is temporarily unavailable.</small>
+</p>
+
             <!-- Add this after your test connection button -->
 <button type="button" onclick="debugTest()" class="btn-secondary">Debug Test</button>
 
