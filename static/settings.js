@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const response = await fetch('/settings/api/da-config');
         const config = await response.json();
 
+        console.log('Loaded config:', config);
+
         if (config.da_server) document.getElementById('da_server').value = config.da_server;
         if (config.da_username) document.getElementById('da_username').value = config.da_username;
         if (config.da_domain) document.getElementById('da_domain').value = config.da_domain;
@@ -21,11 +23,13 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
     e.preventDefault();
 
     const formData = {
-        da_server: document.getElementById('da_server').value,
-        da_username: document.getElementById('da_username').value,
+        da_server: document.getElementById('da_server').value.trim(),
+        da_username: document.getElementById('da_username').value.trim(),
         da_password: document.getElementById('da_password').value,
-        da_domain: document.getElementById('da_domain').value
+        da_domain: document.getElementById('da_domain').value.trim()
     };
+
+    console.log('Submitting settings:', { ...formData, da_password: '***' });
 
     try {
         const response = await fetch('/settings/api/da-config', {
@@ -37,6 +41,7 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
         });
 
         const result = await response.json();
+        console.log('Save response:', result);
 
         if (response.ok) {
             alert('Settings saved successfully!');
@@ -49,19 +54,20 @@ document.getElementById('daConfigForm').addEventListener('submit', async (e) => 
                 window.location.href = '/dashboard';
             }, 1000);
         } else {
+            console.error('Save failed:', result);
             alert(result.error || 'Failed to save settings');
         }
     } catch (error) {
         console.error('Error saving settings:', error);
-        alert('Error saving settings');
+        alert('Error saving settings: ' + error.message);
     }
 });
 
 // Test connection function
 async function testConnection() {
     const formData = {
-        da_server: document.getElementById('da_server').value,
-        da_username: document.getElementById('da_username').value,
+        da_server: document.getElementById('da_server').value.trim(),
+        da_username: document.getElementById('da_username').value.trim(),
         da_password: document.getElementById('da_password').value
     };
 
@@ -74,6 +80,8 @@ async function testConnection() {
         return;
     }
 
+    console.log('Testing connection to:', formData.da_server);
+
     try {
         const response = await fetch('/settings/api/test-connection', {
             method: 'POST',
@@ -84,6 +92,7 @@ async function testConnection() {
         });
 
         const result = await response.json();
+        console.log('Test response:', result);
 
         if (response.ok) {
             alert('✓ ' + result.message);
@@ -92,6 +101,6 @@ async function testConnection() {
         }
     } catch (error) {
         console.error('Error testing connection:', error);
-        alert('✗ Connection test failed');
+        alert('✗ Connection test failed: ' + error.message);
     }
 }
