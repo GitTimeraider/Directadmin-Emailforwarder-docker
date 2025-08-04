@@ -166,7 +166,7 @@ class DirectAdminAPI:
         try:
             print(f"\n=== Getting Email Accounts for {self.domain} ===")
 
-            # Try multiple endpoints 【1】
+            # Try multiple endpoints
             endpoints = [
                 ('/CMD_API_POP', {'action': 'list', 'domain': self.domain}),
                 ('/CMD_API_POP', {'domain': self.domain}),
@@ -245,42 +245,58 @@ class DirectAdminAPI:
         try:
             print(f"\n=== Getting Forwarders for {self.domain} ===")
 
-            endpoint = '/CMD_API_EMAIL_FORWARDERS'
-            data = {
-                'domain': self.domain,
-                'action': 'list'
-            }
+            # Try multiple endpoint variations
+            endpoints = [
+                ('/CMD_API_EMAIL_FORWARDERS', {'domain': self.domain, 'action': 'list'}),
+                ('/CMD_API_EMAIL_FORWARDERS', {'domain': self.domain}),
+                ('/CMD_EMAIL_FORWARDERS', {'domain': self.domain}),
+            ]
 
-            # Try GET first, then POST
-            response = self._make_request(endpoint, data, method='GET')
-            if response is None:
-                print("No response with GET, trying POST")
-                response = self._make_request(endpoint, data, method='POST')
+            response = None
+            for endpoint, params in endpoints:
+                print(f"\nTrying: {endpoint} with params: {params}")
+
+                # Try GET first
+                response = self._make_request(endpoint, params, method='GET')
+                if response:
+                    print(f"Got response with GET")
+                    break
+
+                # Try POST
+                response = self._make_request(endpoint, params, method='POST')
+                if response:
+                    print(f"Got response with POST")
+                    break
 
             if response is None:
-                print("No response from forwarders endpoint")
+                print("ERROR: No response from any forwarders endpoint!")
                 return []
 
-            print(f"Raw response type: {type(response)}")
-            print(f"Raw response: {response}")
+            print(f"\n=== FORWARDERS RAW RESPONSE ===")
+            print(f"Type: {type(response)}")
+            print(f"Content: {response}")
+            print("=" * 50)
 
             forwarders = []
 
             if isinstance(response, dict):
-                print(f"Response is dict with keys: {list(response.keys())}")
-
+                # Look for any sign of forwarders in the response
                 for key, value in response.items():
+                    print(f"Processing key: '{key}' with value: '{value}'")
+
                     if key.startswith('error'):
+                        print(f"Found error: {value}")
                         continue
 
-                    # Format: address=destination or address as key
-                    if '@' in key and value:
+                    # Various possible formats
+                    if '@' in str(key):
                         forwarders.append({
                             'address': key,
                             'destination': str(value)
                         })
-                    # Alternative format with value containing mapping
-                    elif '=' in str(value):
+                    elif 'forward' in str(key).lower():
+                        print(f"Found forward-related key: {key} = {value}")
+                    elif value and '=' in str(value):
                         parts = str(value).split('=', 1)
                         if len(parts) == 2:
                             forwarders.append({
@@ -288,7 +304,21 @@ class DirectAdminAPI:
                                 'destination': parts[1]
                             })
 
-            print(f"Found {len(forwarders)} forwarders")
+            elif isinstance(response, str):
+                print("Response is string, checking for forwarders...")
+                # Maybe it's a different format
+                if '@' in response:
+                    lines = response.strip().split('\n')
+                    for line in lines:
+                        if '=' in line and '@' in line:
+                            parts = line.split('=', 1)
+                            if len(parts) == 2:
+                                forwarders.append({
+                                    'address': parts[0].strip(),
+                                    'destination': parts[1].strip()
+                                })
+
+            print(f"\nParsed {len(forwarders)} forwarders")
             return forwarders
 
         except Exception as e:
