@@ -2,42 +2,49 @@
 
 {% block content %}
 <div class="container">
-    <div class="settings">
-        <h3>2FA Settings</h3>
-        <p>Two-Factor Authentication: <strong>{{ 'Enabled' if current_user.totp_enabled else 'Disabled' }}</strong></p>
-        <button onclick="toggle2FA()">{{ 'Disable' if current_user.totp_enabled else 'Enable' }} 2FA</button>
+    <div class="dashboard-header">
+        <h2>Email Forwarders for {{ domain }}</h2>
+        <div class="header-actions">
+            <button class="btn-refresh" onclick="loadForwarders()">Refresh</button>
+            {% if not current_user.totp_enabled %}
+            <button class="btn-secondary" onclick="window.location.href='/setup-2fa'">Enable 2FA</button>
+            {% else %}
+            <button class="btn-secondary btn-success">2FA Enabled ✓</button>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="forwarder-create">
-        <h2>Create Email Forwarder for {{ domain }}</h2>
+    <div class="card">
+        <h3>Create New Forwarder</h3>
         <form id="createForwarderForm">
             <div class="form-group">
-                <label for="alias">Alias</label>
-                <input type="text" id="alias" name="alias" required>
-                <span>@{{ domain }}</span>
+                <label for="alias">Email Alias</label>
+                <div class="input-with-domain">
+                    <input type="text" id="alias" name="alias" required placeholder="alias">
+                    <span>@{{ domain }}</span>
+                </div>
             </div>
+
             <div class="form-group">
-                <label for="destination">Destination</label>
-                <select id="destination" name="destination" required>
+                <label for="destination">Forward To</label>
+                <select id="destination" name="destination" required onchange="toggleCustomEmail()">
                     <option value="">Loading email accounts...</option>
                 </select>
+
+                <div id="customEmailGroup" style="display: none; margin-top: 10px;">
+                    <input type="email" id="customEmail" placeholder="Enter custom email address" class="custom-email-input">
+                </div>
             </div>
-            <button type="submit">Create Forwarder</button>
+
+            <button type="submit" class="btn-primary">Create Forwarder</button>
         </form>
     </div>
 
-    <div class="forwarders-list">
-        <h2>Existing Forwarders</h2>
-        <div id="forwardersList">Loading...</div>
-    </div>
-</div>
-
-<div id="qrModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <h3>Scan QR Code with Authenticator App</h3>
-        <div id="qrCode"></div>
-        <p>Secret: <code id="totpSecret"></code></p>
-        <button onclick="closeModal()">Close</button>
+    <div class="card">
+        <h3>Existing Forwarders</h3>
+        <div id="forwardersList" class="forwarders-list">
+            <div class="loading">Loading forwarders...</div>
+        </div>
     </div>
 </div>
 {% endblock %}
