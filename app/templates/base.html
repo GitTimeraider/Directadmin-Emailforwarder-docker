@@ -12,6 +12,7 @@
         {% if current_user.is_authenticated %}
             <div class="nav-links">
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('settings.index') }}">Settings</a>
                 {% if current_user.is_admin %}
                     <a href="{{ url_for('admin.users') }}">User Management</a>
                 {% endif %}
@@ -34,4 +35,3 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
-
