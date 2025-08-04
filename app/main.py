@@ -1,143 +1,53 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_login import LoginManager, login_required, current_user
-from datetime import datetime
 from app.models import db, User
-from app.auth import auth_bp
-from app.admin import admin_bp
-from app.settings import settings_bp
-from app.directadmin_api import DirectAdminAPI
 from app.config import Config
-import os
-import traceback
+from app.directadmin_api import DirectAdminAPI
 
 def create_app():
     app = Flask(__name__, 
-                static_folder='../static',
-                template_folder='templates')
+                template_folder='templates',
+                static_folder='../static')
+
     app.config.from_object(Config)
 
-    # Ensure data directory exists
-    data_dir = '/app/data' if os.path.exists('/app') else './data'
-    os.makedirs(data_dir, exist_ok=True)
-
-    # Update database path
-    if 'sqlite' in app.config.get('SQLALCHEMY_DATABASE_URI', ''):
-        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{data_dir}/users.db'
-
+    # Initialize extensions
     db.init_app(app)
 
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
 
-    # Important: Make login manager return JSON for API routes
-    @login_manager.unauthorized_handler
-    def unauthorized():
-        if request.path.startswith('/api/') or request.path.startswith('/settings/api/'):
-            return jsonify({'error': 'Authentication required'}), 401
-        return redirect(url_for('auth.login'))
-
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # NOW we can use @app decorators - app exists here!
-    @app.before_request
-    def check_session():
-        """Ensure session is valid for API routes"""
-        if request.path.startswith(('/api/', '/settings/api/', '/admin/api/')):
-            if not current_user.is_authenticated:
-                return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
-
-    # Error handlers for JSON responses
-    @app.errorhandler(404)
-    def not_found(error):
-        if request.path.startswith('/api/') or request.path.startswith('/settings/api/'):
-            return jsonify({'error': 'Not found'}), 404
-        return render_template('404.html'), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
-        if request.path.startswith('/api/') or request.path.startswith('/settings/api/'):
-            return jsonify({'error': 'Internal server error'}), 500
-        return render_template('500.html'), 500
+    # Register blueprints
+    from app.auth import auth_bp
+    from app.admin import admin_bp
+    from app.settings import settings_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(settings_bp)
 
-    # Initialize database
-    with app.app_context():
-        try:
-            db.create_all()
-            # Create default admin user if none exists
-            if User.query.count() == 0:
-                user = User(username='admin', is_admin=True)
-                user.set_password('changeme')
-                db.session.add(user)
-                db.session.commit()
-                print("Created default admin user")
-        except Exception as e:
-            print(f"Database initialization error: {e}")
-
-    @app.route('/static/<path:filename>')
-    def serve_static(filename):
-        return send_from_directory(app.static_folder, filename)
-
+    # Main routes
     @app.route('/')
     @login_required
     def index():
-        # Check if user has configured DirectAdmin settings
-        if not current_user.has_da_config():
-            return redirect(url_for('settings.index'))
         return redirect(url_for('dashboard'))
 
     @app.route('/dashboard')
     @login_required
     def dashboard():
-        # Check if user has configured DirectAdmin settings
         if not current_user.has_da_config():
-            # Import flash here to avoid circular imports
-            from flask import flash
-            flash('Please configure your DirectAdmin settings first.', 'warning')
             return redirect(url_for('settings.index'))
+        return render_template('dashboard.html')
 
-        # Update last login
-        current_user.last_login = datetime.utcnow()
-        db.session.commit()
-        return render_template('dashboard.html', domain=current_user.da_domain)
-
-    @app.route('/health')
-    def health_check():
-        """Health check endpoint for Docker"""
-        return jsonify({
-            'status': 'healthy',
-            'version': '1.0.0',
-            'database': 'connected' if db.engine else 'disconnected'
-        })
-
-    @app.route('/api/email-accounts')
-    @login_required
-    def get_email_accounts():
-        if not current_user.has_da_config():
-            return jsonify({'error': 'DirectAdmin not configured'}), 400
-
-        try:
-            api = DirectAdminAPI(
-                current_user.da_server,
-                current_user.da_username,
-                current_user.get_da_password()
-            )
-            accounts = api.get_email_accounts(current_user.da_domain)
-            return jsonify(accounts)
-        except Exception as e:
-            print(f"Error getting email accounts: {e}")
-            return jsonify({'error': str(e)}), 500
-
-    @app.route('/api/forwarders')
+    @app.route('/api/forwarders', methods=['GET'])
     @login_required
     def get_forwarders():
+        """Get all forwarders - NO EXTRA ARGUMENTS"""
         if not current_user.has_da_config():
             return jsonify({'error': 'DirectAdmin not configured'}), 400
 
@@ -145,10 +55,15 @@ def create_app():
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
-                current_user.get_da_password()
+                current_user.get_da_password(),
+                current_user.da_domain
             )
-            forwarders = api.get_forwarders(current_user.da_domain)
-            return jsonify(forwarders)
+
+            # Call without extra arguments!
+            forwarders = api.get_forwarders()  # ← No arguments here!
+
+            return jsonify({'forwarders': forwarders})
+
         except Exception as e:
             print(f"Error getting forwarders: {e}")
             return jsonify({'error': str(e)}), 500
@@ -156,25 +71,72 @@ def create_app():
     @app.route('/api/forwarders', methods=['POST'])
     @login_required
     def create_forwarder():
+        """Create a new forwarder"""
         if not current_user.has_da_config():
             return jsonify({'error': 'DirectAdmin not configured'}), 400
 
         try:
-            data = request.json
+            data = request.get_json()
+            address = data.get('address')
+            destination = data.get('destination')
+
+            if not address or not destination:
+                return jsonify({'error': 'Address and destination required'}), 400
+
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
-                current_user.get_da_password()
+                current_user.get_da_password(),
+                current_user.da_domain
             )
-            success = api.create_forwarder(current_user.da_domain, data['alias'], data['destination'])
-            return jsonify({'success': success})
+
+            success, message = api.create_forwarder(address, destination)
+
+            if success:
+                return jsonify({'success': True, 'message': message})
+            else:
+                return jsonify({'error': message}), 400
+
         except Exception as e:
             print(f"Error creating forwarder: {e}")
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/forwarders/<alias>', methods=['DELETE'])
+    @app.route('/api/forwarders', methods=['DELETE'])
     @login_required
-    def delete_forwarder(alias):
+    def delete_forwarder():
+        """Delete a forwarder"""
+        if not current_user.has_da_config():
+            return jsonify({'error': 'DirectAdmin not configured'}), 400
+
+        try:
+            data = request.get_json()
+            address = data.get('address')
+
+            if not address:
+                return jsonify({'error': 'Address required'}), 400
+
+            api = DirectAdminAPI(
+                current_user.da_server,
+                current_user.da_username,
+                current_user.get_da_password(),
+                current_user.da_domain
+            )
+
+            success, message = api.delete_forwarder(address)
+
+            if success:
+                return jsonify({'success': True, 'message': message})
+            else:
+                return jsonify({'error': message}), 400
+
+        except Exception as e:
+            print(f"Error deleting forwarder: {e}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/email-accounts', methods=['GET'])
+    @login_required
+    def get_email_accounts():
+        """Get all email accounts - NO EXTRA ARGUMENTS"""
         if not current_user.has_da_config():
             return jsonify({'error': 'DirectAdmin not configured'}), 400
 
@@ -182,16 +144,40 @@ def create_app():
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
-                current_user.get_da_password()
+                current_user.get_da_password(),
+                current_user.da_domain
             )
-            success = api.delete_forwarder(current_user.da_domain, alias)
-            return jsonify({'success': success})
+
+            # Call without extra arguments!
+            accounts = api.get_email_accounts()  # ← No arguments here!
+
+            return jsonify({'accounts': accounts})
+
         except Exception as e:
-            print(f"Error deleting forwarder: {e}")
+            print(f"Error getting email accounts: {e}")
             return jsonify({'error': str(e)}), 500
 
-    return app  # Don't forget to return the app!
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template('404.html'), 404
 
-if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True, host='0.0.0.0')
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template('500.html'), 500
+
+    # Create tables
+    with app.app_context():
+        db.create_all()
+
+        # Create admin user if doesn't exist
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(username='admin', is_admin=True)
+            admin.set_password('admin')  # Change this!
+            db.session.add(admin)
+            db.session.commit()
+            print("Admin user created with password: admin")
+
+    return app
