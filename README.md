@@ -41,10 +41,6 @@ docker run -d \
   --name email-forwarder \
   -p 5000:5000 \
   -e SECRET_KEY=$(openssl rand -hex 32) \
-  -e DA_SERVER=https://your-directadmin-server.com:2222 \
-  -e DA_USERNAME=your_username \
-  -e DA_PASSWORD=your_password \
-  -e DA_DOMAIN=yourdomain.com \
   -v email-forwarder-data:/app/data \
   ghcr.io/gittimeraider/directadmin-emailforwarder:latest
 ```
@@ -58,10 +54,6 @@ Access the application at `http://localhost:5000`
 | Variable | Description | Required | Default | Example |
 | --- | --- | --- | --- | --- |
 | `SECRET_KEY` | Flask secret key for session encryption | ✅ | \- | `your-secret-key-here` |
-| `DA_SERVER` | DirectAdmin server URL with port | ✅ | \- | `https://server.com:2222` |
-| `DA_USERNAME` | DirectAdmin API username | ✅ | \- | `admin` |
-| `DA_PASSWORD` | DirectAdmin API password | ✅ | \- | `password123` |
-| `DA_DOMAIN` | Domain to manage forwarders for | ✅ | \- | `example.com` |
 | `USER_UID` | User ID for container process | ❌ | `1000` | `1001` |
 | `USER_GID` | Group ID for container process | ❌ | `1000` | `1001` |
 | `DATABASE_URL` | SQLAlchemy database URL | ❌ | `sqlite:///users.db` | `postgresql://...` |
