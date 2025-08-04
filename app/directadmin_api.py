@@ -97,39 +97,62 @@ class DirectAdminAPI:
         except Exception as e:
             return False, str(e)
 
-    def get_email_accounts(self, domain):
-        try:
-            response = self._make_request(f'API_POP?domain={domain}')
-            if response.status_code == 200:
-                accounts = []
-                # Parse the response - DirectAdmin returns URL-encoded list
-                if response.text.strip():
-                    # Response format: account1=data&account2=data&...
-                    # or sometimes: account1&account2&account3
-                    if '=' in response.text:
-                        parsed = parse_qs(response.text.strip())
-                        for account_name in parsed.keys():
-                            if (account_name != self.username and 
-                                not account_name.startswith('_') and
-                                '@' not in account_name):
-                                accounts.append(f"{account_name}@{domain}")
-                    else:
-                        # Simple list format
-                        for line in response.text.strip().split('\n'):
-                            account_name = line.split('&')[0].strip()
-                            if (account_name and 
-                                account_name != self.username and 
-                                not account_name.startswith('_')):
-                                accounts.append(f"{account_name}@{domain}")
+   def get_email_accounts(self):
+    """Get all email accounts for the domain"""
+    try:
+        # DirectAdmin API endpoint for listing email accounts
+        endpoint = '/CMD_API_POP'
+        params = {
+            'action': 'list',
+            'domain': self.domain
+        }
 
-                return sorted(accounts)
-            return []
-        except Exception as e:
-            print(f"Error in get_email_accounts: {e}")
+        response = self._make_request(endpoint, params)
+
+        if response is None:
             return []
 
-    # ... rest of the methods remain the same ...
+        # Parse the response
+        accounts = []
 
+        # DirectAdmin returns data in key=value format
+        if isinstance(response, dict):
+            # If it's already parsed as dict
+            for key, value in response.items():
+                if '@' in key:  # It's an email address
+                    accounts.append(key)
+                elif key.startswith('list[]'):  # Alternative format
+                    accounts.append(value)
+        else:
+            # If it's raw text response
+            lines = response.strip().split('\n') if isinstance(response, str) else []
+            for line in lines:
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    # Check various formats DA might use
+                    if '@' in value:
+                        accounts.append(value)
+                    elif '@' not in key and value and not key.startswith('error'):
+                        # It might be username only, add domain
+                        email = f"{value}@{self.domain}"
+                        accounts.append(email)
+
+        # Filter out the API username's email
+        filtered_accounts = []
+        api_email = f"{self.username}@{self.domain}"
+
+        for email in accounts:
+            if email.lower() != api_email.lower():
+                filtered_accounts.append(email)
+
+        print(f"Found email accounts: {filtered_accounts}")
+        return sorted(filtered_accounts)
+
+    except Exception as e:
+        print(f"Error getting email accounts: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
     def get_forwarders(self, domain):
         try:
