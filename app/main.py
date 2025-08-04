@@ -180,6 +180,14 @@ def create_app():
             print(f"Error deleting forwarder: {e}")
             return jsonify({'error': str(e)}), 500
 
+    # Add this after creating the app
+@app.before_request
+def check_session():
+    """Ensure session is valid for API routes"""
+    if request.path.startswith(('/api/', '/settings/api/', '/admin/api/')):
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
+
     return app
 
 if __name__ == '__main__':
