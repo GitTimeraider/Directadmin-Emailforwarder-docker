@@ -1,257 +1,360 @@
 import requests
-import base64
-from urllib.parse import urlencode, parse_qs, unquote
-import urllib3
+import urllib.parse
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-# Disable SSL warnings
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Disable SSL warnings for self-signed certificates
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class DirectAdminAPI:
-    def __init__(self, server, username, password):
+    def __init__(self, server, username, password, domain=None):
         self.server = server.rstrip('/')
         self.username = username
         self.password = password
-        self.session = requests.Session()
+        self.domain = domain
 
-    def _make_request(self, endpoint, data=None):
+    def _make_request(self, endpoint, data=None, method='POST'):
+        """Make request to DirectAdmin API with improved parsing"""
         try:
             url = f"{self.server}{endpoint}"
-    
-            # For GET requests (like listing)
-            if data and data.get('action') == 'list':
+
+            print(f"Making {method} request to: {url}")
+            if data:
+                print(f"Request data: {data}")
+
+            # Common headers
+            headers = {
+                'User-Agent': 'DirectAdmin Email Forwarder'
+            }
+
+            # Make the request
+            if method == 'GET':
                 response = requests.get(
                     url,
                     params=data,
                     auth=(self.username, self.password),
                     verify=False,
-                    timeout=10
+                    timeout=10,
+                    headers=headers
                 )
             else:
-                # For POST requests
                 response = requests.post(
                     url,
                     data=data,
                     auth=(self.username, self.password),
                     verify=False,
-                    timeout=10
+                    timeout=10,
+                    headers=headers
                 )
-    
-            print(f"API Response Status: {response.status_code}")
-            print(f"API Response Headers: {response.headers}")
-    
+
+            print(f"Response status: {response.status_code}")
+            print(f"Response headers: {dict(response.headers)}")
+
             if response.status_code == 200:
                 content_type = response.headers.get('Content-Type', '')
-    
-                # Try to parse as JSON first
+
+                # Try JSON first
                 if 'json' in content_type:
                     return response.json()
-                else:
-                    # Parse DirectAdmin's key=value format
-                    text = response.text.strip()
-                    result = {}
-    
-                    # Handle URL encoded responses
-                    if 'urlencoded' in content_type or '=' in text:
-                        import urllib.parse
-    
-                        # For email lists, DA often returns: list[]=email1&list[]=email2
-                        if 'list[]=' in text:
-                            emails = []
-                            for part in text.split('&'):
-                                if part.startswith('list[]='):
-                                    email = urllib.parse.unquote(part[7:])
-                                    emails.append(email)
-                            return {'emails': emails}
-                        else:
-                            # Standard key=value parsing
-                            for line in text.split('\n'):
-                                if '=' in line:
-                                    key, value = line.split('=', 1)
-                                    result[urllib.parse.unquote(key)] = urllib.parse.unquote(value)
-    
-                    return result if result else text
-    
-            return None
-    
-        except Exception as e:
-            print(f"API request error: {e}")
-            return None
 
-        def test_connection(self):
-            """Test connection with a simple API call"""
-            try:
-                # Try the simplest API call - show API version
-                # Some of these endpoints might work depending on DA version
-                test_endpoints = [
-                    'API_SHOW_DOMAINS',  # List domains
-                    'API_SHOW_USER_USAGE',  # Show user usage
-                    'API_SHOW_USER_CONFIG',  # Show user config
-                ]
-    
-                last_error = None
-                for endpoint in test_endpoints:
-                    try:
-                        response = self._make_request(endpoint)
-                        if response.status_code == 200:
-                            # Check if response looks like DirectAdmin
-                            content = response.text.lower()
-                            if 'error=1' in content:
-                                # DirectAdmin error response
-                                continue
-                            elif '=' in response.text or response.text.strip():
-                                # Looks like a valid DirectAdmin response
-                                return True, "Connection successful!"
-                    except Exception as e:
-                        last_error = str(e)
-                        print(f"Test endpoint {endpoint} failed: {e}")
-                        continue
-    
-                # If we get here, no endpoint worked
-                if last_error:
-                    return False, last_error
-                else:
-                    return False, "Could not verify DirectAdmin API access"
-    
-            except Exception as e:
-                return False, str(e)
-    
-        def get_email_accounts(self):
-            try:
-            # DirectAdmin API endpoint for listing email accounts
-                endpoint = '/CMD_API_POP'
-                params = {
-                    'action': 'list',
-                    'domain': self.domain
-                }
-    
-                response = self._make_request(endpoint, params)
-    
-                if response is None:
-                       return []
-    
-                # Parse the response
-                accounts = []
-    
-                # DirectAdmin returns data in key=value format
-                if isinstance(response, dict):
-                    # If it's already parsed as dict
-                    for key, value in response.items():
-                        if '@' in key:  # It's an email address
-                            accounts.append(key)
-                        elif key.startswith('list[]'):  # Alternative format
-                            accounts.append(value)
-                else:
-                    # If it's raw text response
-                    lines = response.strip().split('\n') if isinstance(response, str) else []
-                    for line in lines:
+                # Parse DirectAdmin's various response formats
+                text = response.text.strip()
+                print(f"Raw response: {text[:500]}...")  # First 500 chars for debugging
+
+                # Check for error
+                if text.startswith('error=') or 'error=' in text:
+                    error_msg = text.split('error=')[1].split('&')[0]
+                    print(f"API Error: {urllib.parse.unquote(error_msg)}")
+                    return None
+
+                # Parse different response formats
+                result = {}
+
+                # Format 1: URL encoded (key=value&key2=value2)
+                if '=' in text and not text.startswith('<!'):
+                    # Handle special case for lists
+                    if 'list[]=' in text:
+                        items = []
+                        for part in text.split('&'):
+                            if part.startswith('list[]='):
+                                items.append(urllib.parse.unquote(part[7:]))
+                        return {'list': items}
+
+                    # Standard key=value parsing
+                    for pair in text.split('&'):
+                        if '=' in pair:
+                            key, value = pair.split('=', 1)
+                            result[urllib.parse.unquote(key)] = urllib.parse.unquote(value)
+
+                # Format 2: Line-based (key=value\nkey2=value2)
+                elif '\n' in text and '=' in text:
+                    for line in text.split('\n'):
                         if '=' in line:
                             key, value = line.split('=', 1)
-                            # Check various formats DA might use
-                            if '@' in value:
-                                accounts.append(value)
-                            elif '@' not in key and value and not key.startswith('error'):
-                                # It might be username only, add domain
-                                email = f"{value}@{self.domain}"
-                                accounts.append(email)
-    
-                # Filter out the API username's email
-                filtered_accounts = []
-                api_email = f"{self.username}@{self.domain}"
-    
-                for email in accounts:
-                    if email.lower() != api_email.lower():
-                        filtered_accounts.append(email)
-    
-                print(f"Found email accounts: {filtered_accounts}")
-                return sorted(filtered_accounts)
-    
-            except Exception as e:
-                print(f"Error getting email accounts: {e}")
-                import traceback
-                traceback.print_exc()
-                return []
-    
-        def get_forwarders(self, domain):
-            try:
-                response = self._make_request(f'API_EMAIL_FORWARDERS?domain={domain}')
-                if response.status_code == 200:
-                    forwarders = []
-    
-                    if response.text.strip():
-                        # DirectAdmin returns forwarders in format: alias=destination1,destination2&alias2=dest
-                        # First, unescape the response
-                        decoded_response = unquote(response.text.strip())
-    
-                        # Split by & to get individual forwarders
-                        forwarder_entries = decoded_response.split('&')
-    
-                        for entry in forwarder_entries:
-                            if '=' in entry and entry.strip():
-                                parts = entry.split('=', 1)
-                                if len(parts) == 2:
-                                    alias = parts[0].strip()
-                                    destinations_str = parts[1].strip()
-    
-                                    # Split destinations by comma
-                                    destinations = [d.strip() for d in destinations_str.split(',') if d.strip()]
-    
-                                    if alias and destinations:
-                                        forwarders.append({
-                                            'alias': alias,
-                                            'destinations': destinations
-                                        })
-    
-                    return sorted(forwarders, key=lambda x: x['alias'])
-                return []
-            except Exception as e:
-                print(f"Error in get_forwarders: {e}")
-                return []
-    
-        def create_forwarder(self, domain, alias, destination):
-            try:
-                data = {
-                    'domain': domain,
-                    'user': alias,
-                    'email': destination,
-                    'action': 'create'
-                }
-                response = self._make_request('API_EMAIL_FORWARDERS', method='POST', data=data)
-    
-                # Check for success in response
-                if response.status_code == 200:
-                    if 'error=0' in response.text or 'success' in response.text.lower():
-                        return True
-                    elif 'error=1' in response.text:
-                        print(f"DirectAdmin error: {response.text}")
-                        return False
+                            result[key.strip()] = value.strip()
+
+                # Format 3: Simple list (one item per line)
+                elif '\n' in text and '@' in text:
+                    items = [line.strip() for line in text.split('\n') if line.strip()]
+                    return {'list': items}
+
+                # Return parsed result or raw text
+                return result if result else text
+
+            elif response.status_code == 401:
+                print("Authentication failed")
+                return None
+            else:
+                print(f"Request failed with status: {response.status_code}")
+                print(f"Response: {response.text}")
+                return None
+
+        except requests.exceptions.Timeout:
+            print("Request timed out")
+            return None
+        except Exception as e:
+            print(f"Request error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def test_connection(self):
+        """Test the connection to DirectAdmin"""
+        try:
+            # Try CMD_API_SHOW_DOMAINS first
+            endpoint = '/CMD_API_SHOW_DOMAINS'
+            response = self._make_request(endpoint, method='GET')
+
+            if response:
+                if isinstance(response, dict):
+                    # Check if our domain is in the list
+                    if self.domain:
+                        # DirectAdmin might return domains in various formats
+                        domain_list = []
+                        for key, value in response.items():
+                            if 'domain' in key.lower() or key.startswith('list'):
+                                domain_list.append(value)
+                            elif '.' in key:  # Might be domain name as key
+                                domain_list.append(key)
+
+                        if self.domain in domain_list:
+                            return True, f"Successfully connected. Domain {self.domain} found."
+                        else:
+                            return True, f"Connected, but domain {self.domain} not found in account."
                     else:
-                        # If no clear error indicator, assume success
-                        return True
-                return False
-            except Exception as e:
-                print(f"Error in create_forwarder: {e}")
-                return False
-    
-        def delete_forwarder(self, domain, alias):
-            try:
-                data = {
-                    'domain': domain,
-                    'select0': alias,
-                    'action': 'delete'
-                }
-                response = self._make_request('API_EMAIL_FORWARDERS', method='POST', data=data)
-    
-                # Check for success in response
-                if response.status_code == 200:
-                    if 'error=0' in response.text or 'success' in response.text.lower():
-                        return True
-                    elif 'error=1' in response.text:
-                        print(f"DirectAdmin error: {response.text}")
-                        return False
-                    else:
-                        # If no clear error indicator, assume success
-                        return True
-                return False
-            except Exception as e:
-                print(f"Error in delete_forwarder: {e}")
-                return False
+                        return True, "Successfully connected to DirectAdmin."
+                else:
+                    return True, "Successfully connected to DirectAdmin."
+
+            # If that fails, try a simpler endpoint
+            endpoint = '/CMD_API_SHOW_USER_CONFIG'
+            response = self._make_request(endpoint, method='GET')
+
+            if response:
+                return True, "Successfully connected to DirectAdmin."
+
+            return False, "Failed to connect. Please check your credentials."
+
+        except Exception as e:
+            return False, f"Connection error: {str(e)}"
+
+    def get_email_accounts(self):
+        """Get all email accounts for the domain"""
+        try:
+            # Try the email list endpoint
+            endpoint = '/CMD_API_POP'
+            params = {
+                'action': 'list',
+                'domain': self.domain
+            }
+
+            response = self._make_request(endpoint, params, method='GET')
+
+            if response is None:
+                # Try alternative endpoint
+                endpoint = '/CMD_API_EMAIL_POP'
+                response = self._make_request(endpoint, {'domain': self.domain}, method='GET')
+
+            if response is None:
+                print("No response from email accounts endpoint")
+                return []
+
+            accounts = []
+
+            # Parse response based on type
+            if isinstance(response, dict):
+                # Check for list format
+                if 'list' in response:
+                    accounts = response['list']
+                else:
+                    # Extract email addresses from dict
+                    for key, value in response.items():
+                        # Skip error messages
+                        if key.startswith('error'):
+                            continue
+
+                        # Different formats DA might use
+                        if '@' in str(value):
+                            accounts.append(str(value))
+                        elif '@' not in str(value) and value and str(value) != '0':
+                            # Might be just username, add domain
+                            email = f"{value}@{self.domain}"
+                            accounts.append(email)
+                        elif '@' in key:
+                            accounts.append(key)
+
+            elif isinstance(response, str):
+                # Plain text response with emails
+                lines = response.strip().split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if '@' in line:
+                        accounts.append(line)
+                    elif line and not line.startswith('error'):
+                        # Add domain if missing
+                        email = f"{line}@{self.domain}"
+                        accounts.append(email)
+
+            # Remove duplicates and filter out API user's email
+            unique_accounts = list(set(accounts))
+            api_email = f"{self.username}@{self.domain}"
+
+            filtered_accounts = [
+                email for email in unique_accounts 
+                if email.lower() != api_email.lower() and '@' in email
+            ]
+
+            print(f"Found {len(filtered_accounts)} email accounts (excluding API user)")
+            return sorted(filtered_accounts)
+
+        except Exception as e:
+            print(f"Error getting email accounts: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def get_forwarders(self):
+        """Get all email forwarders for the domain"""
+        try:
+            endpoint = '/CMD_API_EMAIL_FORWARDERS'
+            data = {
+                'domain': self.domain,
+                'action': 'list'
+            }
+
+            response = self._make_request(endpoint, data, method='GET')
+
+            if response is None:
+                return []
+
+            forwarders = []
+
+            # Parse forwarders based on response format
+            if isinstance(response, dict):
+                for key, value in response.items():
+                    if key.startswith('error'):
+                        continue
+
+                    # Format: user@domain.com=destination@example.com
+                    if '@' in key and '=' not in key:
+                        # Key is the forwarder address
+                        forwarder = {
+                            'address': key,
+                            'destination': value
+                        }
+                        forwarders.append(forwarder)
+                    elif '=' in str(value):
+                        # Value contains the mapping
+                        parts = str(value).split('=', 1)
+                        if len(parts) == 2:
+                            forwarder = {
+                                'address': parts[0],
+                                'destination': parts[1]
+                            }
+                            forwarders.append(forwarder)
+
+            print(f"Found {len(forwarders)} forwarders")
+            return forwarders
+
+        except Exception as e:
+            print(f"Error getting forwarders: {e}")
+            return []
+
+    def create_forwarder(self, address, destination):
+        """Create an email forwarder"""
+        try:
+            # Ensure full email addresses
+            if '@' not in address:
+                address = f"{address}@{self.domain}"
+
+            # Extract username from address
+            username = address.split('@')[0]
+
+            endpoint = '/CMD_API_EMAIL_FORWARDERS'
+            data = {
+                'domain': self.domain,
+                'action': 'create',
+                'user': username,
+                'email': destination
+            }
+
+            response = self._make_request(endpoint, data)
+
+            if response:
+                # Check for success
+                if isinstance(response, dict):
+                    if 'error' in response:
+                        return False, response.get('error', 'Unknown error')
+                    elif 'success' in response or 'created' in response:
+                        return True, f"Forwarder {address} → {destination} created successfully"
+
+                # If no error, assume success
+                return True, f"Forwarder {address} → {destination} created"
+
+            return False, "Failed to create forwarder"
+
+        except Exception as e:
+            print(f"Error creating forwarder: {e}")
+            return False, str(e)
+
+    def delete_forwarder(self, address):
+        """Delete an email forwarder"""
+        try:
+            # Ensure full email address
+            if '@' not in address:
+                address = f"{address}@{self.domain}"
+
+            # Extract username from address
+            username = address.split('@')[0]
+
+            endpoint = '/CMD_API_EMAIL_FORWARDERS'
+            data = {
+                'domain': self.domain,
+                'action': 'delete',
+                'user': username,
+                'select0': username  # DirectAdmin expects select0 for deletion
+            }
+
+            response = self._make_request(endpoint, data)
+
+            if response:
+                # Check for success
+                if isinstance(response, dict):
+                    if 'error' in response:
+                        return False, response.get('error', 'Unknown error')
+                    elif 'success' in response or 'deleted' in response:
+                        return True, f"Forwarder {address} deleted successfully"
+
+                # If no error, assume success
+                return True, f"Forwarder {address} deleted"
+
+            return False, "Failed to delete forwarder"
+
+        except Exception as e:
+            print(f"Error deleting forwarder: {e}")
+            return False, str(e)
+
+    def validate_email(self, email):
+        """Basic email validation"""
+        import re
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(pattern, email) is not None
