@@ -266,3 +266,156 @@ button:hover {
 .actions {
     white-space: nowrap;
 }
+
+/* Dashboard Header */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-secondary.btn-success {
+    background-color: #28a745;
+    cursor: default;
+}
+
+.btn-refresh {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-refresh:hover {
+    background-color: #138496;
+}
+
+/* Custom Email Input */
+.custom-email-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+/* Forwarder List Styling */
+.forwarders-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.forwarder-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.forwarder-item:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.forwarder-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.forwarder-alias {
+    font-weight: 600;
+    color: #495057;
+    min-width: 150px;
+}
+
+.forwarder-arrow {
+    color: #6c757d;
+    font-size: 1.2rem;
+}
+
+.forwarder-destinations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.destination-tag {
+    background-color: #007bff;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+}
+
+.no-forwarders {
+    text-align: center;
+    color: #6c757d;
+    padding: 2rem;
+    font-style: italic;
+}
+
+.loading {
+    text-align: center;
+    color: #6c757d;
+    padding: 2rem;
+}
+
+.input-with-domain {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-with-domain input {
+    flex: 1;
+}
+
+.input-with-domain span {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Make select dropdowns look better */
+select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: white;
+}
+
+select optgroup {
+    font-weight: 600;
+}
