@@ -169,3 +169,41 @@ def generate_qr_code(user):
     except Exception as e:
         print(f"ERROR generating QR code: {str(e)}")
         raise
+
+@auth_bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Change user password"""
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        # Validate current password
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect.', 'error')
+            return render_template('change_password.html')
+
+        # Validate new password
+        if not new_password or len(new_password) < 8:
+            flash('New password must be at least 8 characters long.', 'error')
+            return render_template('change_password.html')
+
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'error')
+            return render_template('change_password.html')
+
+        # Update password
+        try:
+            current_user.set_password(new_password)
+            db.session.commit()
+
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('auth.profile'))
+
+        except Exception as e:
+            print(f"Error changing password: {e}")
+            db.session.rollback()
+            flash('Error changing password. Please try again.', 'error')
+
+    return render_template('change_password.html')
