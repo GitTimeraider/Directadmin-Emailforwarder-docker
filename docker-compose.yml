@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DA_SERVER=${DA_SERVER}
+      - DA_USERNAME=${DA_USERNAME}
+      - DA_PASSWORD=${DA_PASSWORD}
+      - DA_DOMAIN=${DA_DOMAIN}
+      - DATABASE_URL=sqlite:////app/data/users.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
