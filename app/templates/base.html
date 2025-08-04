@@ -1,4 +1,4 @@
-tings<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -25,7 +25,7 @@ tings<!DOCTYPE html>
         <a href="{{ url_for('settings.index') }}">Settings</a>
         <a href="{{ url_for('auth.profile') }}">Profile</a>
         {% if current_user.is_admin %}
-            <a href="{{ url_for('admin.index') }}">Admin</a>
+            <a href="{{ url_for('admin.users') }}">Admin</a>
         {% endif %}
         <a href="{{ url_for('auth.logout') }}">Logout</a>
     </div>
