@@ -136,3 +136,133 @@ button:hover {
 #qrCode img {
     margin: 1rem 0;
 }
+/* Admin Styles */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.users-table {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow-x: auto;
+}
+
+#usersTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#usersTable th {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+#usersTable td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#usersTable tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.badge.admin {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.badge.user {
+    background-color: #6c757d;
+    color: white;
+}
+
+.badge.enabled {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge.disabled {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.password-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.password-input-group input {
+    flex: 1;
+}
+
+.password-input-group button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+}
+
+.nav-links a:hover {
+    text-decoration: underline;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+#passwordHint {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.actions {
+    white-space: nowrap;
+}
