@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app.models import db
 from app.directadmin_api import DirectAdminAPI
 import traceback
+import json
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
 
@@ -28,16 +29,39 @@ def get_da_config():
 @settings_bp.route('/api/da-config', methods=['POST'])
 @login_required
 def update_da_config():
-    """Save DirectAdmin settings WITHOUT testing connection"""
+    """Save DirectAdmin settings"""
+    print(f"\n=== SAVE ENDPOINT CALLED ===")
+    print(f"Request method: {request.method}")
+    print(f"Content-Type: {request.content_type}")
+    print(f"Request headers: {dict(request.headers)}")
+
+    # Check if request has JSON content type
+    if not request.content_type or 'application/json' not in request.content_type:
+        print(f"ERROR: Wrong content type: {request.content_type}")
+        return jsonify({
+            'error': 'Content-Type must be application/json',
+            'received_content_type': request.content_type
+        }), 400
+
     try:
-        # Ensure we have JSON data
-        if not request.is_json:
-            return jsonify({'error': 'Content-Type must be application/json'}), 400
+        # Try to get JSON data
+        try:
+            data = request.get_json(force=True)  # Force parsing even if content-type is wrong
+            if not data:
+                print("ERROR: No JSON data in request body")
+                return jsonify({'error': 'No JSON data provided'}), 400
+        except Exception as json_error:
+            print(f"ERROR: Failed to parse JSON: {json_error}")
+            print(f"Request data: {request.data}")
+            return jsonify({
+                'error': 'Invalid JSON in request body',
+                'details': str(json_error)
+            }), 400
 
-        data = request.json
-        print(f"Saving settings for user: {current_user.username}")
+        print(f"Received data: {data}")
+        print(f"Current user: {current_user.username}")
 
-        # Basic validation - just check if fields are provided
+        # Validate required fields
         required_fields = ['da_server', 'da_username', 'da_domain']
         missing_fields = []
 
@@ -46,6 +70,7 @@ def update_da_config():
                 missing_fields.append(field)
 
         if missing_fields:
+            print(f"Missing fields: {missing_fields}")
             return jsonify({
                 'error': f'Missing required fields: {", ".join(missing_fields)}',
                 'missing_fields': missing_fields
@@ -53,12 +78,11 @@ def update_da_config():
 
         # Ensure user has encryption key
         if not current_user.encryption_key:
-            print("Generating encryption key for user")
+            print("Generating encryption key")
             current_user.generate_encryption_key()
 
         # Clean and save the server URL
         server_url = data['da_server'].strip()
-        # Ensure it has a protocol
         if not server_url.startswith(('http://', 'https://')):
             server_url = 'https://' + server_url
 
@@ -79,80 +103,33 @@ def update_da_config():
             }), 400
 
         # Save to database
-        db.session.commit()
-        print("Settings saved successfully")
+        try:
+            db.session.commit()
+            print("✓ Settings saved successfully")
 
-        return jsonify({
-            'success': True, 
-            'message': 'Settings saved successfully! (Connection not tested)',
-            'saved_data': {
-                'da_server': current_user.da_server,
-                'da_username': current_user.da_username,
-                'da_domain': current_user.da_domain
-            }
-        })
+            return jsonify({
+                'success': True, 
+                'message': 'Settings saved successfully!',
+                'saved_data': {
+                    'da_server': current_user.da_server,
+                    'da_username': current_user.da_username,
+                    'da_domain': current_user.da_domain
+                }
+            })
+
+        except Exception as db_error:
+            print(f"Database error: {db_error}")
+            db.session.rollback()
+            return jsonify({
+                'error': 'Database error while saving',
+                'details': str(db_error)
+            }), 500
 
     except Exception as e:
-        print(f"Error saving settings: {str(e)}")
+        print(f"ERROR in update_da_config: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
         return jsonify({
             'error': f'Failed to save settings: {str(e)}',
-            'details': 'Check server logs for more information'
+            'exception_type': type(e).__name__
         }), 500
-
-@settings_bp.route('/api/test-connection', methods=['POST'])
-@login_required
-def test_connection():
-    """Test DirectAdmin connection - completely separate from saving"""
-    try:
-        data = request.json
-        print(f"Testing connection for user: {current_user.username}")
-
-        # Use provided credentials or current user's saved ones
-        server = data.get('da_server') or current_user.da_server
-        username = data.get('da_username') or current_user.da_username
-        password = data.get('da_password') or current_user.get_da_password()
-
-        if not all([server, username, password]):
-            missing = []
-            if not server: missing.append('server')
-            if not username: missing.append('username')
-            if not password: missing.append('password')
-
-            return jsonify({
-                'error': f'Missing credentials: {", ".join(missing)}',
-                'missing': missing
-            }), 400
-
-        # Ensure server URL is properly formatted
-        if not server.startswith(('http://', 'https://')):
-            server = 'https://' + server
-
-        # Test connection
-        api = DirectAdminAPI(server, username, password)
-        success, message = api.test_connection()
-
-        if success:
-            return jsonify({'success': True, 'message': message})
-        else:
-            return jsonify({'error': message, 'success': False}), 200  # Return 200 even on test failure
-
-    except Exception as e:
-        print(f"Test connection error: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e), 'success': False}), 200  # Return 200 to avoid confusion
-
-@settings_bp.route('/api/debug')
-@login_required
-def debug_info():
-    """Debug endpoint to check user state"""
-    return jsonify({
-        'user': current_user.username,
-        'has_encryption_key': bool(current_user.encryption_key),
-        'has_da_config': current_user.has_da_config(),
-        'da_server_configured': bool(current_user.da_server),
-        'da_username_configured': bool(current_user.da_username),
-        'da_password_configured': bool(current_user.da_password_encrypted),
-        'da_domain_configured': bool(current_user.da_domain)
-    })
