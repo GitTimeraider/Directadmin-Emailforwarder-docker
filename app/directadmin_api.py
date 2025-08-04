@@ -376,81 +376,72 @@ class DirectAdminAPI:
     def create_forwarder(self, address, destination):
         """Create an email forwarder"""
         try:
-            # Ensure we have just the username part
+            # Ensure we have just the username part for the alias
             if '@' in address:
                 username = address.split('@')[0]
             else:
                 username = address
 
-            # Various parameter formats DirectAdmin might expect
-            param_sets = [
-                # Format 1: Standard 【1】
-                {
-                    'domain': self.domain,
-                    'action': 'create',
-                    'user': username,
-                    'email': destination
-                },
-                # Format 2: With select0
-                {
-                    'domain': self.domain,
-                    'action': 'create',
-                    'select0': username,
-                    'email': destination
-                },
-                # Format 3: Forward specific
-                {
-                    'domain': self.domain,
-                    'action': 'create',
-                    'forward': f"{username}={destination}"
-                }
-            ]
+            # IMPORTANT FIX: Ensure destination is a full email address!
+            if '@' not in destination:
+                # If destination doesn't have @, assume it's a local user on the same domain
+                destination = f"{destination}@{self.domain}"
 
             print(f"\n=== Creating Forwarder ===")
             print(f"Username: {username}")
             print(f"Domain: {self.domain}")
-            print(f"Destination: {destination}")
+            print(f"Destination (full): {destination}")  # Show the full address
 
-            response = None
-            for i, data in enumerate(param_sets):
-                print(f"\nTrying parameter set {i+1}: {data}")
+            # Use the correct parameter format that DirectAdmin expects
+            endpoint = '/CMD_API_EMAIL_FORWARDERS'
+            data = {
+                'domain': self.domain,
+                'action': 'create',
+                'user': username,
+                'email': destination  # This MUST be a full email address
+            }
 
-                endpoint = '/CMD_API_EMAIL_FORWARDERS'
-                response = self._make_request(endpoint, data, method='POST')
+            print(f"Sending parameters: {data}")
 
-                if response:
-                    print(f"Got response: {response}")
+            response = self._make_request(endpoint, data, method='POST')
 
-                    if isinstance(response, dict):
-                        # Check for errors
-                        if 'error' in response:
-                            error_msg = response.get('error', 'Unknown error')
-                            error_code = response.get('error_code', '')
-                            details = response.get('details', '')
-                            text = response.get('text', '')
+            if response:
+                print(f"Got response: {response}")
 
-                            # API error 1 often means permission or format issues 【2】
-                            if error_msg == '1' or error_code == '1':
-                                print(f"API Error 1 detected. Details: {details}, Text: {text}")
-                                # Try next parameter set
-                                continue
-                            else:
-                                return False, f"Error: {error_msg} {details} {text}".strip()
+                if isinstance(response, dict):
+                    # Check for errors
+                    if 'error' in response:
+                        error_msg = response.get('error', 'Unknown error')
+                        details = response.get('details', '')
+                        text = response.get('text', '')
 
-                        # Check for success indicators
-                        if any(key in response for key in ['success', 'created', 'added']):
-                            return True, f"Forwarder {username}@{self.domain} → {destination} created"
+                        if details:
+                            # Parse URL-encoded details
+                            details = urllib.parse.unquote(details)
+                        if text:
+                            text = urllib.parse.unquote(text)
 
-                        # If no error and no explicit success, might still be OK
-                        if not any(key.startswith('error') for key in response.keys()):
-                            return True, f"Forwarder {username}@{self.domain} → {destination} created"
+                        # Provide meaningful error message
+                        if 'invalid email' in details.lower():
+                            return False, f"Invalid email address format: {details}"
+                        elif details or text:
+                            return False, f"{text}: {details}" if text and details else (text or details)
+                        else:
+                            return False, f"Error: {error_msg}"
 
-                    elif isinstance(response, str):
-                        if 'error' not in response.lower():
-                            return True, f"Forwarder {username}@{self.domain} → {destination} created"
+                    # Check for success indicators
+                    if any(key in response for key in ['success', 'created', 'added']):
+                        return True, f"Forwarder {username}@{self.domain} → {destination} created successfully"
 
-            # If all parameter sets failed
-            return False, "Failed to create forwarder. Check DirectAdmin logs for details."
+                    # If no error and no explicit success, might still be OK
+                    if not any(key.startswith('error') for key in response.keys()):
+                        return True, f"Forwarder {username}@{self.domain} → {destination} created"
+
+                elif isinstance(response, str):
+                    if 'error' not in response.lower():
+                        return True, f"Forwarder {username}@{self.domain} → {destination} created"
+
+            return False, "Failed to create forwarder. No response from server."
 
         except Exception as e:
             print(f"Error creating forwarder: {e}")
