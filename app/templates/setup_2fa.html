@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Enable Two-Factor Authentication</h2>
+
+    <div class="setup-2fa-container">
+        <p>Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):</p>
+
+        <div class="qr-code-container">
+            <img src="{{ qr_code }}" alt="2FA QR Code" />
+        </div>
+
+        <div class="manual-entry">
+            <p>Or enter this code manually:</p>
+            <code class="secret-code">{{ user.totp_secret }}</code>
+        </div>
+
+        <form method="POST" class="verification-form">
+            <div class="form-group">
+                <label for="token">Enter the 6-digit code from your app:</label>
+                <input type="text" id="token" name="token" 
+                       pattern="[0-9]{6}" maxlength="6" 
+                       placeholder="000000" required autofocus>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Verify and Enable 2FA</button>
+                <a href="{{ url_for('auth.profile') }}" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.setup-2fa-container {
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.qr-code-container {
+    margin: 2rem 0;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.qr-code-container img {
+    max-width: 250px;
+}
+
+.manual-entry {
+    margin: 2rem 0;
+}
+
+.secret-code {
+    display: block;
+    margin: 1rem auto;
+    padding: 0.5rem 1rem;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+}
+
+.verification-form {
+    margin-top: 2rem;
+}
+
+.verification-form input[type="text"] {
+    font-size: 1.5rem;
+    letter-spacing: 0.5em;
+    text-align: center;
+    width: 200px;
+    margin: 0 auto;
+}
+</style>
+{% endblock %}
