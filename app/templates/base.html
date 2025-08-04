@@ -10,7 +10,11 @@
     <nav>
         <h1>Email Forwarder Manager</h1>
         {% if current_user.is_authenticated %}
-            <div>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin.users') }}">User Management</a>
+                {% endif %}
                 <span>Welcome, {{ current_user.username }}</span>
                 <a href="{{ url_for('auth.logout') }}">Logout</a>
             </div>
@@ -30,3 +34,4 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
+
