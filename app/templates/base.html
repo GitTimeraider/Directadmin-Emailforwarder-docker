@@ -7,20 +7,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <nav>
-        <h1>Email Forwarder Manager</h1>
-        {% if current_user.is_authenticated %}
-            <div class="nav-links">
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('settings.index') }}">Settings</a>
-                {% if current_user.is_admin %}
-                    <a href="{{ url_for('admin.users') }}">User Management</a>
-                {% endif %}
-                <span>Welcome, {{ current_user.username }}</span>
-                <a href="{{ url_for('auth.logout') }}">Logout</a>
-            </div>
+<nav>
+    <div class="nav-brand">
+        <a href="{{ url_for('main.dashboard') }}">Email Forwarder</a>
+    </div>
+
+    <!-- Add hamburger button -->
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Wrap existing nav links -->
+    <div class="nav-links" id="navLinks">
+        <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('settings.index') }}">Settings</a>
+        <a href="{{ url_for('auth.profile') }}">Profile</a>
+        {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.index') }}">Admin</a>
         {% endif %}
-    </nav>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+</nav>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
