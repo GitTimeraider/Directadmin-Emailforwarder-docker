@@ -25,7 +25,8 @@ def get_da_config():
         })
     except Exception as e:
         print(f"Error in GET da-config: {e}")
-        return jsonify({'error': str(e)}), 500
+        print(traceback.format_exc())
+        return jsonify({'error': 'An internal error has occurred. Please try again later.'}), 500
 
 @settings_bp.route('/api/da-config', methods=['POST'])
 @login_required
@@ -86,7 +87,7 @@ def update_da_config():
         print(f"Error in POST da-config: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error has occurred. Please try again later.'}), 500
 
 # Keep test-connection separate
 @settings_bp.route('/api/test-connection', methods=['POST'])
@@ -119,7 +120,8 @@ def test_connection():
 
     except Exception as e:
         print(f"Test connection error: {str(e)}")
-        return jsonify({'error': str(e), 'success': False}), 200
+        print(traceback.format_exc())
+        return jsonify({'error': 'An internal error has occurred.', 'success': False}), 200
 
 # Debug route to check available routes
 @settings_bp.route('/api/debug-routes', methods=['GET'])

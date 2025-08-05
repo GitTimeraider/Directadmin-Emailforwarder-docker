@@ -93,7 +93,6 @@ def create_app():
             traceback.print_exc()
             return jsonify({
                 'error': 'Failed to fetch email accounts',
-                'details': str(e),
                 'accounts': []
             }), 500
 
@@ -135,7 +134,6 @@ def create_app():
             traceback.print_exc()
             return jsonify({
                 'error': 'Failed to fetch forwarders',
-                'details': str(e),
                 'forwarders': []
             }), 500
 
@@ -180,15 +178,14 @@ def create_app():
                 })
             else:
                 return jsonify({
-                    'error': message
+                    'error': 'Failed to create forwarder'
                 }), 400
 
         except Exception as e:
             print(f"Error creating forwarder: {str(e)}")
             traceback.print_exc()
             return jsonify({
-                'error': 'Failed to create forwarder',
-                'details': str(e)
+                'error': 'Failed to create forwarder'
             }), 500
 
     @app.route('/api/forwarders', methods=['DELETE'])
@@ -234,8 +231,7 @@ def create_app():
             print(f"Error deleting forwarder: {str(e)}")
             traceback.print_exc()
             return jsonify({
-                'error': 'Failed to delete forwarder',
-                'details': str(e)
+                'error': 'Failed to delete forwarder'
             }), 500
 
     # ===== Error Handlers =====
@@ -360,4 +356,4 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)

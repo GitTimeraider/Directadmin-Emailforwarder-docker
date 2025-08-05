@@ -167,7 +167,10 @@ class DirectAdminAPI:
             return False, "Failed to connect. Please check your credentials."
 
         except Exception as e:
-            return False, f"Connection error: {str(e)}"
+            import traceback
+            print(f"Connection error: {str(e)}")
+            traceback.print_exc()
+            return False, "Connection error: Unable to connect to DirectAdmin."
 
     def get_email_accounts(self):
         """Get all email accounts for the domain"""
@@ -439,7 +442,7 @@ class DirectAdminAPI:
             print(f"Error creating forwarder: {e}")
             import traceback
             traceback.print_exc()
-            return False, str(e)
+            return False, "An error occurred while creating the forwarder"
 
     def delete_forwarder(self, address):
         """Delete an email forwarder"""
@@ -492,7 +495,7 @@ class DirectAdminAPI:
 
         except Exception as e:
             print(f"Error deleting forwarder: {e}")
-            return False, str(e)
+            return False, "An error occurred while deleting the forwarder"
 
     def validate_email(self, email):
         """Basic email validation"""
