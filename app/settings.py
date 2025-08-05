@@ -119,7 +119,8 @@ def test_connection():
 
     except Exception as e:
         print(f"Test connection error: {str(e)}")
-        return jsonify({'error': str(e), 'success': False}), 200
+        print(traceback.format_exc())
+        return jsonify({'error': 'An internal error has occurred.', 'success': False}), 200
 
 # Debug route to check available routes
 @settings_bp.route('/api/debug-routes', methods=['GET'])
