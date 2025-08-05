@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Default UID and GID (can be overridden)
 ARG USER_UID=1000
