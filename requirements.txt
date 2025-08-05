@@ -2,7 +2,7 @@ Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
 Flask-Login==0.6.2
 Werkzeug==2.3.6
-gunicorn==21.2.0
+gunicorn==23.0.0
 pyotp==2.9.0
 qrcode==8.2
 pillow==10.0.0
