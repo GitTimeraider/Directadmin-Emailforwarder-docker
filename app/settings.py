@@ -25,7 +25,8 @@ def get_da_config():
         })
     except Exception as e:
         print(f"Error in GET da-config: {e}")
-        return jsonify({'error': str(e)}), 500
+        print(traceback.format_exc())
+        return jsonify({'error': 'An internal error has occurred. Please try again later.'}), 500
 
 @settings_bp.route('/api/da-config', methods=['POST'])
 @login_required
