@@ -93,7 +93,6 @@ def create_app():
             traceback.print_exc()
             return jsonify({
                 'error': 'Failed to fetch email accounts',
-                'details': str(e),
                 'accounts': []
             }), 500
 
