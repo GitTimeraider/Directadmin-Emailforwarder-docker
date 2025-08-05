@@ -234,8 +234,7 @@ def create_app():
             print(f"Error deleting forwarder: {str(e)}")
             traceback.print_exc()
             return jsonify({
-                'error': 'Failed to delete forwarder',
-                'details': str(e)
+                'error': 'Failed to delete forwarder'
             }), 500
 
     # ===== Error Handlers =====
