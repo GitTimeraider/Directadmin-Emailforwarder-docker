@@ -167,7 +167,10 @@ class DirectAdminAPI:
             return False, "Failed to connect. Please check your credentials."
 
         except Exception as e:
-            return False, f"Connection error: {str(e)}"
+            import traceback
+            print(f"Connection error: {str(e)}")
+            traceback.print_exc()
+            return False, "Connection error: Unable to connect to DirectAdmin."
 
     def get_email_accounts(self):
         """Get all email accounts for the domain"""
