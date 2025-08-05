@@ -187,8 +187,7 @@ def create_app():
             print(f"Error creating forwarder: {str(e)}")
             traceback.print_exc()
             return jsonify({
-                'error': 'Failed to create forwarder',
-                'details': str(e)
+                'error': 'Failed to create forwarder'
             }), 500
 
     @app.route('/api/forwarders', methods=['DELETE'])
