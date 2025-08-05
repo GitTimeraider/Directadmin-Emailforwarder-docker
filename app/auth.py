@@ -6,7 +6,7 @@ import qrcode
 import io
 import base64
 from datetime import datetime
-
+from urllib.parse import urlparse
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -32,7 +32,11 @@ def login():
                     login_user(user)
 
                     next_page = request.args.get('next')
-                    return redirect(next_page) if next_page else redirect(url_for('index'))
+                    if next_page:
+                        safe_next = next_page.replace('\\', '')
+                        if not urlparse(safe_next).netloc and not urlparse(safe_next).scheme:
+                            return redirect(safe_next)
+                    return redirect(url_for('index'))
                 else:
                     flash('Invalid 2FA code', 'error')
                     # Show 2FA form again with username preserved
@@ -54,7 +58,11 @@ def login():
                     login_user(user)
 
                     next_page = request.args.get('next')
-                    return redirect(next_page) if next_page else redirect(url_for('index'))
+                    if next_page:
+                        safe_next = next_page.replace('\\', '')
+                        if not urlparse(safe_next).netloc and not urlparse(safe_next).scheme:
+                            return redirect(safe_next)
+                    return redirect(url_for('index'))
             else:
                 flash('Invalid username or password', 'error')
 
