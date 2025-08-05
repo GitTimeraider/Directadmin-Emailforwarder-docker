@@ -495,7 +495,7 @@ class DirectAdminAPI:
 
         except Exception as e:
             print(f"Error deleting forwarder: {e}")
-            return False, str(e)
+            return False, "An error occurred while deleting the forwarder"
 
     def validate_email(self, email):
         """Basic email validation"""
