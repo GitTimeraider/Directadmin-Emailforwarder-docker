@@ -442,7 +442,7 @@ class DirectAdminAPI:
             print(f"Error creating forwarder: {e}")
             import traceback
             traceback.print_exc()
-            return False, str(e)
+            return False, "An error occurred while creating the forwarder"
 
     def delete_forwarder(self, address):
         """Delete an email forwarder"""
