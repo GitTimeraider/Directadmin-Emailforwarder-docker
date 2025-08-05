@@ -135,7 +135,6 @@ def create_app():
             traceback.print_exc()
             return jsonify({
                 'error': 'Failed to fetch forwarders',
-                'details': str(e),
                 'forwarders': []
             }), 500
 
