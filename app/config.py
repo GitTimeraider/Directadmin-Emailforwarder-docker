@@ -9,7 +9,7 @@ class Config:
     # Session configuration
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    SESSION_COOKIE_SECURE = False  # Set to True if using HTTPS
+    SESSION_COOKIE_SECURE = True  # Set to True if using HTTPS
     PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
 
     # JSON configuration
