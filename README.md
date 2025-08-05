@@ -1,11 +1,9 @@
-# Directadmin-Emailforwarder - UNDER DEVELOPMENT
-
 # DirectAdmin Email Forwarder Manager
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 
-A secure web application for managing email forwarders through the DirectAdmin API. Features a clean web interface with authentication, 2FA support, and Docker deployment options.
+A Dockerized secure web application for managing email forwarders through the DirectAdmin API. Features a clean web interface with authentication, 2FA support, user management options.
 
 ## ✨ Features
 
@@ -71,10 +69,10 @@ Access the application at `http://localhost:5000`
 3.  **Change default password immediately**
     -   This is critical for security
 4.  **Configure additional users** (if needed)
-    -   Navigate to User Management
+    -   Navigate to User Management under Admin
     -   Create users for team members
 5.  **Enable 2FA** (Recommended)
-    -   Click "Enable 2FA" in the dashboard
+    -   Click "Enable 2FA" in the settings
     -   Scan QR code with authenticator app
 
 ### Managing Email Forwarders
