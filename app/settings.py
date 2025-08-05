@@ -86,7 +86,7 @@ def update_da_config():
         print(f"Error in POST da-config: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error has occurred. Please try again later.'}), 500
 
 # Keep test-connection separate
 @settings_bp.route('/api/test-connection', methods=['POST'])
