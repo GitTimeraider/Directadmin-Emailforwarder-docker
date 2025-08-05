@@ -180,7 +180,7 @@ def create_app():
                 })
             else:
                 return jsonify({
-                    'error': message
+                    'error': 'Failed to create forwarder'
                 }), 400
 
         except Exception as e:
