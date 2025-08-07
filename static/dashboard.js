@@ -313,6 +313,16 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
+// Generate random alias
+function generateRandomAlias(length = 20) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard JS loaded');
@@ -339,6 +349,15 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', createForwarder);
     } else {
         console.error('Create forwarder form not found');
+    }
+
+    // Dice button for random alias
+    const randomBtn = document.getElementById('randomAliasBtn');
+    const aliasInput = document.getElementById('alias');
+    if (randomBtn && aliasInput) {
+        randomBtn.addEventListener('click', function() {
+            aliasInput.value = generateRandomAlias();
+        });
     }
 });
 
