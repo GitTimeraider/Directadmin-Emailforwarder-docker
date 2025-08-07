@@ -313,16 +313,6 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
-// Generate random alias
-function generateRandomAlias(length = 20) {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard JS loaded');
