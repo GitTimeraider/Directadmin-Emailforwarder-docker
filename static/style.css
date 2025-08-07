@@ -313,38 +313,34 @@ button:hover {
 .btn-refresh:hover {
     background-color: #138496;
 }
-.input-bar,
-.input-addon {
-    height: 2.5rem;
-    line-height: 2.5rem;
-    font-size: 1rem;
-    box-sizing: border-box;
-    padding: 0.5rem 1rem;
-}
-
 .input-bar {
+    height: 2.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
     border: 1px solid #ced4da;
-    border-radius: 4px 0 0 4px;
-    border-right: none;
-    background: #fff;
+    border-radius: 4px;
+    box-sizing: border-box;
     width: 100%;
+    background: #fff;
     appearance: none;
 }
 
 .input-group .input-bar {
-    /* no changes needed if above is applied */
+    border-right: none;
+    border-radius: 4px 0 0 4px;
 }
 
 .input-addon {
-    display: inline-block;
+    display: flex;
+    align-items: center;
     background: #eee;
+    padding: 0 1rem;
+    font-size: 1rem;
     border: 1px solid #ced4da;
     border-left: none;
     border-radius: 0 4px 4px 0;
-    /* Remove or set vertical-align if needed */
-    vertical-align: middle;
-    /* Remove separate height/line-height if present above */
-    /* height and line-height are now unified above */
+    height: 2.5rem;
+    box-sizing: border-box;
 }
 /* Custom Email Input */
 .custom-email-input {
