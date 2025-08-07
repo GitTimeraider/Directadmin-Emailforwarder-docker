@@ -694,3 +694,9 @@ input.error {
     outline: none !important;
     box-shadow: none !important;
 }
+
+/* Make the alias input about 70% wider */
+.input-group input#alias {
+    flex: 2.2 1 0%;
+    min-width: 0;
+}
