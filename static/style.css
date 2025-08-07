@@ -313,7 +313,30 @@ button:hover {
 .btn-refresh:hover {
     background-color: #138496;
 }
-
+.input-bar {
+    height: 2.5rem;              /* makes height consistent */
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    width: 100%;
+}
+.input-group .input-bar {
+    border-right: none;          /* if you want the input and addon to look connected */
+}
+.input-addon {
+    display: inline-block;
+    background: #eee;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    vertical-align: middle;
+    height: 2.5rem;
+    line-height: 2.5rem;
+}
 /* Custom Email Input */
 .custom-email-input {
     width: 100%;
