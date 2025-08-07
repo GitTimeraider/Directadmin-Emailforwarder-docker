@@ -673,36 +673,3 @@ input.error {
         display: flex !important; /* Ensure it's always visible on desktop */
     }
 }
-
-/* Dice icon button styling */
-.dice-btn {
-    background: none;
-    border: none;
-    padding: 0 0.5em;
-    margin-left: 0.25em;
-    font-size: 1.3em;
-    cursor: pointer;
-    color: #888;
-    transition: color 0.2s;
-    line-height: 1;
-}
-
-/* Remove background and outline on focus/active for dice button */
-.dice-btn:focus,
-.dice-btn:active {
-    background: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.input-group {
-    display: flex;
-    align-items: center;
-}
-
-.input-group input#alias {
-    width: 70% !important;
-    flex: 2.2 1 0% !important;
-    min-width: 200px;
-    max-width: 100%;
-}
