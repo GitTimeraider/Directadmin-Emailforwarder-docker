@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 class Config:
     # Core settings
@@ -10,7 +11,7 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_SECURE = True  # Set to True if using HTTPS
-    PERMANENT_SESSION_LIFETIME = 72000  # 20 hours
+    PERMANENT_SESSION_LIFETIME = timedelta(days=1)  # 1 day session time
 
     # JSON configuration
     JSON_AS_ASCII = False
