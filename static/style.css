@@ -674,35 +674,60 @@ input.error {
     }
 }
 
-/* Dice icon button styling */
+.input-group {
+    display: flex;
+    align-items: stretch; /* Ensures all children have the same height */
+    max-width: 100%;
+    gap: 0; /* Remove any gap if present */
+}
+
+.input-group input#alias {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 350px; /* or whatever max you want */
+    width: 0;
+    box-sizing: border-box;
+    height: auto;
+    margin: 0;
+}
+
+.input-addon {
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-right: none;
+    color: #666;
+    border-radius: 0;
+    height: auto;
+}
+
 .dice-btn {
+    display: flex;
+    align-items: center;
     background: none;
-    border: none;
-    padding: 0 0.5em;
-    margin-left: 0.25em;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    padding: 0 0.75em;
     font-size: 1.3em;
     cursor: pointer;
     color: #888;
     transition: color 0.2s;
     line-height: 1;
+    height: auto;
 }
 
-/* Remove background and outline on focus/active for dice button */
-.dice-btn:focus,
-.dice-btn:active {
-    background: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.input-group {
+.form-row {
     display: flex;
-    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
 }
 
-.input-group input#alias {
-    width: 70% !important;
-    flex: 2.2 1 0% !important;
+.form-group {
+    flex: 1 1 250px;
     min-width: 200px;
-    max-width: 100%;
 }
