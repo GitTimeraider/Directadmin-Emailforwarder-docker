@@ -700,3 +700,8 @@ input.error {
     flex: 2.2 1 0%;
     min-width: 0;
 }
+
+.input-group {
+    display: flex;
+    align-items: center;
+}
