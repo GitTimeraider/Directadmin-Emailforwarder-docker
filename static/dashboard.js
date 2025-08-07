@@ -351,14 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Create forwarder form not found');
     }
 
-    // Dice button for random alias
-    const randomBtn = document.getElementById('randomAliasBtn');
-    const aliasInput = document.getElementById('alias');
-    if (randomBtn && aliasInput) {
-        randomBtn.addEventListener('click', function() {
-            aliasInput.value = generateRandomAlias();
-        });
-    }
 });
 
 // Utility function to escape HTML (prevent XSS)
