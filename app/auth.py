@@ -30,7 +30,7 @@ def login():
                     user.update_last_login()
                     db.session.commit()
                     login_user(user)
-
+                    session.permanent = True
                     next_page = request.args.get('next')
                     if next_page:
                         safe_next = next_page.replace('\\', '')
@@ -56,6 +56,7 @@ def login():
                     user.update_last_login()
                     db.session.commit()
                     login_user(user)
+                    session.permanent = True
 
                     next_page = request.args.get('next')
                     if next_page:
