@@ -686,3 +686,11 @@ input.error {
     transition: color 0.2s;
     line-height: 1;
 }
+
+/* Remove background and outline on focus/active for dice button */
+.dice-btn:focus,
+.dice-btn:active {
+    background: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
