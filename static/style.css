@@ -686,6 +686,3 @@ input.error {
     transition: color 0.2s;
     line-height: 1;
 }
-.dice-btn:hover {
-    color: #007bff;
-}
