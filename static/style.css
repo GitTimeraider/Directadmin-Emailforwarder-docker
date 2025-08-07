@@ -673,3 +673,19 @@ input.error {
         display: flex !important; /* Ensure it's always visible on desktop */
     }
 }
+
+/* Dice icon button styling */
+.dice-btn {
+    background: none;
+    border: none;
+    padding: 0 0.5em;
+    margin-left: 0.25em;
+    font-size: 1.3em;
+    cursor: pointer;
+    color: #888;
+    transition: color 0.2s;
+    line-height: 1;
+}
+.dice-btn:hover {
+    color: #007bff;
+}
