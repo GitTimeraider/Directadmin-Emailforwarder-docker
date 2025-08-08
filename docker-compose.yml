@@ -4,7 +4,7 @@ services:
   web:
     build:
       context: .
-    image: ghcr.io/${GITHUB_USERNAME}/directadmin-email-forwarder:latest
+    image: ghcr.io/GitTimeraider/directadmin-emailforwarder:main
     ports:
       - "5000:5000"
     environment:
