@@ -790,7 +790,25 @@ tr:hover {
 
 @media (max-width: 768px) {
     .form-row {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    /* First form-group (alias) takes full width */
+    .card .form-group:first-child {
+        flex: 1 1 100%;
+        margin-bottom: 1rem;
+    }
+
+    /* Second form-group (destination) and third (button) share a row */
+    .card .form-group:nth-child(2) {
+        flex: 1 1 60%;
+        min-width: 200px;
+    }
+
+    .card .form-group:nth-child(3) {
+        flex: 1 1 35%;
+        min-width: 120px;
     }
 
     .card {
