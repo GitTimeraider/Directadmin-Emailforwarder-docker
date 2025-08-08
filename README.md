@@ -1,4 +1,7 @@
 # DirectAdmin Email Forwarder Manager
+<p align="center" width="100%">
+    <img width="33%" src="static/assets/img/icon_main_25.png">
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
