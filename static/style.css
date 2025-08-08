@@ -882,7 +882,7 @@ input[type="text"]#totp_code {
 .qr-code-container {
     margin: 2rem 0;
     padding: 1rem;
-    background: #fff;
+    background: white;
     border: 1px solid #ddd;
     border-radius: 8px;
 }
