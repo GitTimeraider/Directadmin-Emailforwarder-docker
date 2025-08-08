@@ -965,6 +965,12 @@ input[type="text"]#totp_code {
     padding: 0 1rem; /* previously set inline in dashboard */
 }
 
+.dashboard-container h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    margin-top: 1rem;
+}
+
 .profile-container {
     max-width: 800px; /* previously set inline in profile */
 }
