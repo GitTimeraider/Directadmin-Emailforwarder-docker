@@ -719,6 +719,11 @@ input.error {
     min-width: 200px;
 }
 
+/* Make alias field slightly wider than other fields */
+.card .form-group:first-child {
+    flex: 1.3;
+}
+
 .input-group {
     display: flex;
     align-items: center;
