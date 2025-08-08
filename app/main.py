@@ -275,23 +275,26 @@ def create_app():
         # Create all tables
         db.create_all()
 
-        # Create default admin user if it doesn't exist
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
+        # Create default admin user only if no administrators exist
+        admin_count = User.query.filter_by(is_admin=True).count()
+        if admin_count == 0:
+            # No administrators exist, create default admin user
             admin_user = User(username='admin', is_admin=True)
-            admin_user.set_password('admin')  # CHANGE THIS IN PRODUCTION!
+            admin_user.set_password('changeme')  # Default password
             db.session.add(admin_user)
             try:
                 db.session.commit()
                 print("=" * 50)
-                print("Admin user created!")
+                print("Default admin user created!")
                 print("Username: admin")
-                print("Password: admin")
+                print("Password: changeme")
                 print("PLEASE CHANGE THIS PASSWORD IMMEDIATELY!")
                 print("=" * 50)
             except Exception as e:
                 print(f"Error creating admin user: {e}")
                 db.session.rollback()
+        else:
+            print(f"Found {admin_count} administrator(s) - skipping default admin creation")
 
     # ===== Additional App Configuration =====
 
