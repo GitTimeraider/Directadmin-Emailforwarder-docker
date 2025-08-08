@@ -945,3 +945,9 @@ input[type="text"]#totp_code {
 .profile-container {
     max-width: 800px; /* previously set inline in profile */
 }
+
+/* Fix: Ensure Change Password button is below text in security-item */
+.security-item a.btn-primary {
+    display: inline-block;
+    margin-top: 0.5rem;
+}
