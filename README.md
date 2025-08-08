@@ -43,7 +43,7 @@ docker run -d \
   -p 5000:5000 \
   -e SECRET_KEY=$(openssl rand -hex 32) \
   -v email-forwarder-data:/app/data \
-  ghcr.io/gittimeraider/directadmin-emailforwarder:latest
+  ghcr.io/gittimeraider/directadmin-emailforwarder:main
 ```
 Access the application at `http://localhost:5000`
 
