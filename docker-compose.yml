@@ -8,14 +8,10 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - SECRET_KEY=${SECRET_KEY}
-      - DA_SERVER=${DA_SERVER}
-      - DA_USERNAME=${DA_USERNAME}
-      - DA_PASSWORD=${DA_PASSWORD}
-      - DA_DOMAIN=${DA_DOMAIN}
+      - SECRET_KEY=CH@NGETHISRANDOMCHARACTERSTR1NG
       - DATABASE_URL=sqlite:////app/data/users.db
-      - USER_UID=${USER_UID:-1000}
-      - USER_GID=${USER_GID:-1000}
+      - USER_UID=1000
+      - USER_GID=1000
     volumes:
       - ./data:/app/data
     restart: unless-stopped
