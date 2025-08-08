@@ -4,14 +4,14 @@ services:
   web:
     build:
       context: .
-    image: ghcr.io/GitTimeraider/directadmin-emailforwarder:main
+    image: ghcr.io/gittimeraider/directadmin-emailforwarder:main
     ports:
       - "5000:5000"
     environment:
-      - SECRET_KEY=CH@NGETHISRANDOMCHARACTERSTR1NG
+      - SECRET_KEY=CH@NGETHISRANDOMCHARACTERSTR1NG #Change this
       - DATABASE_URL=sqlite:////app/data/users.db
-      - USER_UID=1000
-      - USER_GID=1000
+      - USER_UID=1000 #Defaults to 1000 anyway. Can be left out or changed if desired
+      - USER_GID=1000 #Defaults to 1000 anyway. Can be left out or changed if desired
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data #Save location of database with user logins and totp
     restart: unless-stopped
