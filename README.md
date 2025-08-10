@@ -36,6 +36,10 @@ A Dockerized secure web application for managing email forwarders through the Di
 - **Docker** (recommended): Docker Engine 20.10+ and Docker Compose 2.0+
 - **Python** (for manual installation): Python 3.11+
 
+<p align="center" width="100%">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/directadmin.jpg">
+</p>
+
 ## 🚀 Quick Start
 
 ```bash
@@ -79,7 +83,7 @@ Access the application at `http://localhost:5000`
 5.  **Enable 2FA** (Recommended)
     -   Click "Enable 2FA" in the settings
     -   Scan QR code with authenticator app
-
+  
 ### Managing Email Forwarders
 
 #### Creating a Forwarder
@@ -139,6 +143,11 @@ Only administrators can access user management at `/admin/users`
 -   2FA Status
 -   Creation date
 -   Last login time
+
+<p align="center" width="100%">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/users.jpg">
+</p>
+
 
 ## 🔒 Security
 
