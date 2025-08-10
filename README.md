@@ -1,6 +1,6 @@
 # DirectAdmin Email Forwarder Manager
 <p align="center" width="100%">
-    <img width="33%" src="static/assets/img/icon_main_25.png">
+    <img width="33%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/icon_main_25.png">
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
