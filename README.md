@@ -24,8 +24,10 @@ A Dockerized secure web application for managing email forwarders through the Di
   - Available on GitHub Container Registry
 - **🔄 DirectAdmin Integration**: Direct API integration with DirectAdmin servers
 - **📊 Real-time Updates**: Automatic refresh of forwarder list
+<p align="center" width="100%">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/dashboard.jpg">
+</p>
 
-</details>
 
 ## 📚 Prerequisites
 
