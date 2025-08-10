@@ -37,7 +37,7 @@ A Dockerized secure web application for managing email forwarders through the Di
 - **Python** (for manual installation): Python 3.11+
 
 <p align="center" width="100%">
-    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/directadmin.jpg">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/directadmin2.jpg">
 </p>
 
 ## 🚀 Quick Start
