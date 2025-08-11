@@ -1,4 +1,4 @@
-# DirectAdmin Email Forwarder Manager
+# DirectAdmin Email Forwarder Manager (Dockerized)
 <p align="center" width="100%">
     <img width="33%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/icon_main_25.png">
 </p>
