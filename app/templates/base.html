@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/img/ico_main_25.ico') }}">
 </head>
-<body data-theme="{{ current_user.get_theme_preference() if current_user.is_authenticated else 'light' }}">
+<body data-theme="{{ current_user.theme_preference if current_user.is_authenticated else 'light' }}">
 <nav>
     <div class="nav-brand">
         <a href="{{ url_for('dashboard') }}">DirectAdmin 📧 Forwarder</a>

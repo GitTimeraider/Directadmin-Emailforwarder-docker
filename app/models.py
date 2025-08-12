@@ -30,31 +30,11 @@ class User(UserMixin, db.Model):
     da_password_encrypted = db.Column(db.Text, nullable=True)
     da_domain = db.Column(db.String(255), nullable=True)
 
+    # User preferences
+    theme_preference = db.Column(db.String(20), default='light', nullable=True)
+
     # Unique encryption key per user for DA password
     encryption_key = db.Column(db.String(255), nullable=True)
-
-    def get_theme_preference(self):
-        """Get theme preference - uses session storage until database column exists"""
-        try:
-            # Try to get from database column if it exists
-            if hasattr(self, 'theme_preference') and hasattr(self.__class__, 'theme_preference'):
-                return getattr(self, 'theme_preference', 'light') or 'light'
-        except:
-            pass
-        # Default to light theme
-        return 'light'
-    
-    def set_theme_preference(self, theme):
-        """Set theme preference - will work once database column exists"""
-        try:
-            if theme in ['light', 'dark']:
-                # Try to set database column if it exists
-                if hasattr(self.__class__, 'theme_preference'):
-                    setattr(self, 'theme_preference', theme)
-                    return True
-        except:
-            pass
-        return False
 
     def __init__(self, **kwargs):
         """Initialize user with encryption key"""

@@ -22,7 +22,7 @@ def get_da_config():
             'da_username': current_user.da_username or '',
             'da_domain': current_user.da_domain or '',
             'has_password': bool(current_user.da_password_encrypted),
-            'theme_preference': current_user.get_theme_preference()
+            'theme_preference': current_user.theme_preference or 'light'
         })
     except Exception as e:
         print(f"Error in GET da-config: {e}")
@@ -137,21 +137,14 @@ def update_theme():
         if theme not in ['light', 'dark']:
             return jsonify({'error': 'Invalid theme value'}), 400
 
-        # Use safe setter method
-        if current_user.set_theme_preference(theme):
-            db.session.commit()
-            return jsonify({
-                'success': True,
-                'message': f'Theme updated to {theme}',
-                'theme': theme
-            })
-        else:
-            # Column doesn't exist yet - still return success for frontend
-            return jsonify({
-                'success': True,
-                'message': f'Theme set to {theme} (database not updated - run migration)',
-                'theme': theme
-            })
+        current_user.theme_preference = theme
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Theme updated to {theme}',
+            'theme': theme
+        })
 
     except Exception as e:
         print(f"Error updating theme: {str(e)}")
