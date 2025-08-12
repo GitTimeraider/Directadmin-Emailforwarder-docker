@@ -30,7 +30,17 @@ class Config:
     SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
     # Allow overriding secure flag for local HTTP testing (set SESSION_COOKIE_SECURE=false)
     SESSION_COOKIE_SECURE = _bool('SESSION_COOKIE_SECURE', default=False)
-    PERMANENT_SESSION_LIFETIME = timedelta(days=int(os.environ.get('SESSION_LIFETIME_DAYS', '1')))
+    
+    # Session lifetime configuration - defaults to 12 hours for better user experience
+    _session_hours = int(os.environ.get('SESSION_LIFETIME_HOURS', '12'))
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=_session_hours)
+    
+    # Ensure session cookies persist across browser restarts
+    SESSION_COOKIE_NAME = 'da_emailforwarder_session'
+    SESSION_COOKIE_MAX_AGE = _session_hours * 3600  # Convert hours to seconds
+    
+    # Refresh session on each request to prevent timeout during active use
+    SESSION_REFRESH_EACH_REQUEST = True
 
     # JSON configuration
     JSON_AS_ASCII = False
