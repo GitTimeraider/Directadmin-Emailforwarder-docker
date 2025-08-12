@@ -38,4 +38,5 @@ VOLUME ["/app/data"]
 EXPOSE 5000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app.main:create_app()"]
+# Use --preload so that db.create_all runs once before forking workers (avoids SQLite lock/race)
+CMD ["gunicorn", "--preload", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app.main:create_app()"]

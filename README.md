@@ -63,7 +63,10 @@ Access the application at `http://localhost:5000`
 | `SECRET_KEY` | Flask secret key for session encryption | ✅ | \- | `your-secret-key-here` |
 | `USER_UID` | User ID for container process | ❌ | `1000` | `1001` |
 | `USER_GID` | Group ID for container process | ❌ | `1000` | `1001` |
-| `DATABASE_URL` | SQLAlchemy database URL | ❌ | `sqlite:///users.db` | `postgresql://...` |
+| `DATABASE_URL` | SQLAlchemy database URL | ❌ | `sqlite:////app/data/users.db` | `postgresql://...` |
+| `DATA_DIR` | Override data directory (SQLite, uploads) | ❌ | `/app/data` | `/data` |
+| `SESSION_COOKIE_SECURE` | Force secure cookies (set true in HTTPS) | ❌ | `false` | `true` |
+| `SESSION_LIFETIME_DAYS` | Session lifetime in days | ❌ | `1` | `7` |
 
 ## 📖 Usage
 

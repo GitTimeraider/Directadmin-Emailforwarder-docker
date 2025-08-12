@@ -271,30 +271,34 @@ def create_app():
 
     # ===== Database Initialization =====
 
-    with app.app_context():
-        # Create all tables
-        db.create_all()
+    # Ensure DB initialization only once (important with multi-worker if --preload not used)
+    if not app.config.get('_DB_INITIALIZED', False):
+        with app.app_context():
+            print(f"Initializing database at URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            db.create_all()
 
-        # Create default admin user only if no administrators exist
-        admin_count = User.query.filter_by(is_admin=True).count()
-        if admin_count == 0:
-            # No administrators exist, create default admin user
-            admin_user = User(username='admin', is_admin=True)
-            admin_user.set_password('changeme')  # Default password
-            db.session.add(admin_user)
-            try:
-                db.session.commit()
-                print("=" * 50)
-                print("Default admin user created!")
-                print("Username: admin")
-                print("Password: changeme")
-                print("PLEASE CHANGE THIS PASSWORD IMMEDIATELY!")
-                print("=" * 50)
-            except Exception as e:
-                print(f"Error creating admin user: {e}")
-                db.session.rollback()
-        else:
-            print(f"Found {admin_count} administrator(s) - skipping default admin creation")
+            # Create default admin user only if no administrators exist
+            admin_count = User.query.filter_by(is_admin=True).count()
+            if admin_count == 0:
+                # No administrators exist, create default admin user
+                admin_user = User(username='admin', is_admin=True)
+                admin_user.set_password('changeme')  # Default password
+                db.session.add(admin_user)
+                try:
+                    db.session.commit()
+                    print("=" * 50)
+                    print("Default admin user created!")
+                    print("Username: admin")
+                    print("Password: changeme")
+                    print("PLEASE CHANGE THIS PASSWORD IMMEDIATELY!")
+                    print("=" * 50)
+                except Exception as e:
+                    print(f"Error creating admin user: {e}")
+                    db.session.rollback()
+            else:
+                print(f"Found {admin_count} administrator(s) - skipping default admin creation")
+
+            app.config['_DB_INITIALIZED'] = True
 
     # ===== Additional App Configuration =====
 
