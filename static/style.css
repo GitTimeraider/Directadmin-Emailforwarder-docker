@@ -4,15 +4,46 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Light mode colors */
+    --primary-color: #6f42c1;
+    --primary-hover: #5a359a;
+    --secondary-color: #8e44ad;
+    --secondary-hover: #7d3c98;
+    --background-color: #f5f5f5;
+    --surface-color: #ffffff;
+    --text-color: #333333;
+    --text-muted: #6c757d;
+    --border-color: #ddd;
+    --nav-background: #4a2c70;
+    --nav-text: #ffffff;
+}
+
+[data-theme="dark"] {
+    /* Dark mode colors */
+    --primary-color: #8e44ad;
+    --primary-hover: #a569bd;
+    --secondary-color: #6f42c1;
+    --secondary-hover: #8b5fbf;
+    --background-color: #1a1a1a;
+    --surface-color: #2d2d2d;
+    --text-color: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --border-color: #444;
+    --nav-background: #2d1b45;
+    --nav-text: #ffffff;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 nav {
-    background-color: #2c3e50;
-    color: white;
+    background-color: var(--nav-background);
+    color: var(--nav-text);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
@@ -20,7 +51,7 @@ nav {
 }
 
 nav a {
-    color: white;
+    color: var(--nav-text);
     text-decoration: none;
     margin-left: 1rem;
 }
@@ -34,7 +65,7 @@ nav a {
 .login-container {
     max-width: 400px;
     margin: 5rem auto;
-    background: white;
+    background: var(--surface-color);
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -53,13 +84,15 @@ nav a {
 .form-group input, .form-group select {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
+    background-color: var(--surface-color);
+    color: var(--text-color);
 }
 
 button {
-    background-color: #3498db;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -69,12 +102,12 @@ button {
 }
 
 button:hover {
-    background-color: #2980b9;
+    background-color: var(--primary-hover);
 }
 
 
 .forwarder-create, .forwarders-list, .settings {
-    background: white;
+    background: var(--surface-color);
     padding: 2rem;
     margin-bottom: 2rem;
     border-radius: 8px;
@@ -105,7 +138,7 @@ button:hover {
 }
 
 .modal-content {
-    background: white;
+    background: var(--surface-color);
     padding: 2rem;
     border-radius: 8px;
     max-width: 400px;
@@ -124,7 +157,7 @@ button:hover {
 }
 
 .users-table {
-    background: white;
+    background: var(--surface-color);
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -137,20 +170,21 @@ button:hover {
 }
 
 #usersTable th {
-    background-color: #f8f9fa;
+    background-color: var(--background-color);
     padding: 1rem;
     text-align: left;
     font-weight: 600;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-color);
 }
 
 #usersTable td {
     padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--border-color);
 }
 
 #usersTable tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--background-color);
 }
 
 .badge {
@@ -161,12 +195,12 @@ button:hover {
 }
 
 .badge.admin {
-    background-color: #6f42c1;
+    background-color: var(--primary-color);
     color: white;
 }
 
 .badge.user {
-    background-color: #6c757d;
+    background-color: var(--text-muted);
     color: white;
 }
 
@@ -187,7 +221,7 @@ button:hover {
 }
 
 .btn-primary {
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -197,7 +231,7 @@ button:hover {
 }
 
 .btn-primary:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-hover);
 }
 
 .password-input-group {
@@ -221,7 +255,7 @@ button:hover {
 }
 
 .nav-links a {
-    color: white;
+    color: var(--nav-text);
     text-decoration: none;
 }
 
@@ -237,7 +271,7 @@ button:hover {
 }
 
 #passwordHint {
-    color: #6c757d;
+    color: var(--text-muted);
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
@@ -261,7 +295,7 @@ button:hover {
 }
 
 .btn-secondary {
-    background-color: #6c757d;
+    background-color: var(--text-muted);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -271,7 +305,7 @@ button:hover {
 }
 
 .btn-secondary:hover {
-    background-color: #5a6268;
+    background-color: var(--secondary-hover);
 }
 
 .btn-secondary.btn-success {
@@ -296,11 +330,12 @@ button:hover {
     height: 2.5rem;
     padding: 0.5rem 1rem;
     font-size: 1rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     box-sizing: border-box;
     width: 100%;
-    background: #fff;
+    background: var(--surface-color);
+    color: var(--text-color);
     appearance: none;
 }
 
@@ -312,22 +347,25 @@ button:hover {
 .input-addon {
     display: flex;
     align-items: center;
-    background: #eee;
+    background: var(--background-color);
     padding: 0 1rem;
     font-size: 1rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-color);
     border-left: none;
     border-radius: 0 4px 4px 0;
     height: 2.5rem;
     box-sizing: border-box;
+    color: var(--text-color);
 }
 /* Custom Email Input */
 .custom-email-input {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
+    background-color: var(--surface-color);
+    color: var(--text-color);
 }
 
 /* Forwarder List Styling */
@@ -341,16 +379,16 @@ button:hover {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     margin-bottom: 0.75rem;
-    background-color: #f8f9fa;
+    background-color: var(--background-color);
     transition: all 0.2s ease;
 }
 
 .forwarder-item:hover {
-    background-color: #e9ecef;
-    border-color: #dee2e6;
+    background-color: var(--surface-color);
+    border-color: var(--primary-color);
 }
 
 .forwarder-info {
@@ -362,12 +400,12 @@ button:hover {
 
 .forwarder-alias {
     font-weight: 600;
-    color: #495057;
+    color: var(--text-color);
     min-width: 150px;
 }
 
 .forwarder-arrow {
-    color: #6c757d;
+    color: var(--text-muted);
     font-size: 1.2rem;
 }
 
@@ -378,7 +416,7 @@ button:hover {
 }
 
 .destination-tag {
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
@@ -387,14 +425,14 @@ button:hover {
 
 .no-forwarders {
     text-align: center;
-    color: #6c757d;
+    color: var(--text-muted);
     padding: 2rem;
     font-style: italic;
 }
 
 .loading {
     text-align: center;
-    color: #6c757d;
+    color: var(--text-muted);
     padding: 2rem;
 }
 
@@ -409,7 +447,7 @@ button:hover {
 }
 
 .input-with-domain span {
-    color: #6c757d;
+    color: var(--text-muted);
     font-weight: 500;
 }
 
@@ -417,10 +455,11 @@ button:hover {
 select {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
-    background-color: white;
+    background-color: var(--surface-color);
+    color: var(--text-color);
 }
 
 select optgroup {
@@ -429,13 +468,13 @@ select optgroup {
 
 /* Settings Page Styles */
 .settings-description {
-    color: #6c757d;
+    color: var(--text-muted);
     margin-bottom: 1.5rem;
 }
 
 .settings-section {
     padding: 1.5rem 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .settings-section:last-child {
@@ -444,7 +483,7 @@ select optgroup {
 
 .settings-section h4 {
     margin-bottom: 1rem;
-    color: #495057;
+    color: var(--text-color);
 }
 
 .status-enabled {
@@ -572,7 +611,7 @@ input.error {
     display: block;
     width: 25px;
     height: 3px;
-    background-color: white;
+    background-color: var(--nav-text);
     margin: 5px 0;
     transition: all 0.3s ease;
 }
@@ -597,7 +636,7 @@ input.error {
         position: relative;
         flex-wrap: wrap;
         padding: 1rem;
-        background-color: #2c3e50; /* Ensure background is set */
+        background-color: var(--nav-background);
         width: 100%;
         min-width: 100%;
     }
@@ -616,7 +655,7 @@ input.error {
         width: 80%;
         max-width: 300px;
         height: 100vh;
-        background-color: #2c3e50;
+        background-color: var(--nav-background);
         flex-direction: column;
         align-items: flex-start;
         padding: 80px 2rem 2rem;
@@ -693,7 +732,7 @@ input.error {
 
 /* Dashboard / Cards & Form Layout */
 .card {
-    background: #fff;
+    background: var(--surface-color);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     padding: 2rem;
@@ -703,7 +742,7 @@ input.error {
 .card h3 {
     margin-top: 0;
     margin-bottom: 1.5rem;
-    color: #333;
+    color: var(--text-color);
 }
 
 .form-row {
@@ -739,21 +778,21 @@ table {
 }
 
 th {
-    background-color: #f8f9fa;
+    background-color: var(--background-color);
     padding: 1rem;
     text-align: left;
     font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-color);
 }
 
 td {
     padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--border-color);
 }
 
 tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--background-color);
 }
 
 .btn-danger {
@@ -772,7 +811,7 @@ tr:hover {
 
 .no-data {
     text-align: center;
-    color: #6c757d;
+    color: var(--text-muted);
     padding: 2rem;
 }
 
@@ -785,7 +824,7 @@ tr:hover {
 .refresh-info {
     text-align: right;
     margin-top: 1rem;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 @media (max-width: 768px) {
@@ -825,7 +864,7 @@ tr:hover {
 .help-text {
     display: block;
     margin-top: 0.25rem;
-    color: #6c757d;
+    color: var(--text-muted);
     font-size: 0.875rem;
 }
 
@@ -839,7 +878,7 @@ input[type="text"]#totp_code {
 .profile-info,
 .security-section,
 .directadmin-section {
-    background: #fff;
+    background: var(--surface-color);
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -862,7 +901,7 @@ input[type="text"]#totp_code {
 .info-item label {
     font-weight: bold;
     display: block;
-    color: #666;
+    color: var(--text-muted);
     margin-bottom: 0.25rem;
     font-size: 0.9rem;
 }
@@ -874,7 +913,7 @@ input[type="text"]#totp_code {
 .security-item,
 .da-status {
     padding: 1.5rem 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .security-item:last-child,
@@ -884,7 +923,7 @@ input[type="text"]#totp_code {
 }
 
 .da-info {
-    background: #f8f9fa;
+    background: var(--background-color);
     padding: 1rem;
     border-radius: 4px;
     margin: 1rem 0;
@@ -905,8 +944,8 @@ input[type="text"]#totp_code {
 .qr-code-container {
     margin: 2rem 0;
     padding: 1rem;
-    background: white;
-    border: 1px solid #ddd;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
 }
 
@@ -922,12 +961,13 @@ input[type="text"]#totp_code {
     display: block;
     margin: 1rem auto;
     padding: 0.5rem 1rem;
-    background: #f5f5f5;
-    border: 1px solid #ddd;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-family: monospace;
     font-size: 1.1rem;
     letter-spacing: 0.1em;
+    color: var(--text-color);
 }
 
 .verification-form {
@@ -971,8 +1011,8 @@ input[type="text"]#totp_code {
 
 /* Site Footer */
 .site-footer {
-    background-color: #2c3e50;
-    color: white;
+    background-color: var(--nav-background);
+    color: var(--nav-text);
     text-align: center;
     padding: 1rem 2rem;
     margin-top: 3rem;
@@ -984,13 +1024,71 @@ input[type="text"]#totp_code {
 }
 
 .site-footer a {
-    color: #3498db;
+    color: var(--primary-color);
     text-decoration: none;
 }
 
 .site-footer a:hover {
-    color: #5dade2;
+    color: var(--primary-hover);
     text-decoration: underline;
+}
+
+/* Theme Toggle Switch */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.theme-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.theme-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--text-muted);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.theme-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: var(--surface-color);
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .theme-slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .theme-slider:before {
+    transform: translateX(26px);
+}
+
+.theme-label {
+    font-weight: 500;
+    color: var(--text-color);
 }
 
 /* Fix: Ensure Change Password button is below text in security-item */

@@ -53,4 +53,48 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 250);
     });
+
+    // Theme persistence - apply theme from localStorage if different from server preference
+    const savedTheme = localStorage.getItem('theme-preference');
+    const currentTheme = body.getAttribute('data-theme');
+    
+    if (savedTheme && savedTheme !== currentTheme) {
+        body.setAttribute('data-theme', savedTheme);
+    }
 });
+
+// Global theme toggle function (used in settings page)
+window.toggleTheme = async function() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) return;
+    
+    const newTheme = themeToggle.checked ? 'dark' : 'light';
+    
+    // Apply theme immediately
+    document.body.setAttribute('data-theme', newTheme);
+    
+    // Save to localStorage for immediate persistence
+    localStorage.setItem('theme-preference', newTheme);
+    
+    try {
+        // Save theme preference to server
+        const response = await fetch('/settings/api/theme', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ theme: newTheme })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                console.log('Theme preference saved:', newTheme);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving theme preference:', error);
+        // Don't revert the theme change on save error, user can still use it for this session
+    }
+};

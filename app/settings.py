@@ -21,7 +21,8 @@ def get_da_config():
             'da_server': current_user.da_server or '',
             'da_username': current_user.da_username or '',
             'da_domain': current_user.da_domain or '',
-            'has_password': bool(current_user.da_password_encrypted)
+            'has_password': bool(current_user.da_password_encrypted),
+            'theme_preference': current_user.theme_preference or 'light'
         })
     except Exception as e:
         print(f"Error in GET da-config: {e}")
@@ -122,6 +123,34 @@ def test_connection():
         print(f"Test connection error: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': 'An internal error has occurred.', 'success': False}), 200
+
+@settings_bp.route('/api/theme', methods=['POST'])
+@login_required
+def update_theme():
+    """Update user theme preference"""
+    try:
+        data = request.get_json()
+        if not data or 'theme' not in data:
+            return jsonify({'error': 'Theme not provided'}), 400
+
+        theme = data['theme']
+        if theme not in ['light', 'dark']:
+            return jsonify({'error': 'Invalid theme value'}), 400
+
+        current_user.theme_preference = theme
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Theme updated to {theme}',
+            'theme': theme
+        })
+
+    except Exception as e:
+        print(f"Error updating theme: {str(e)}")
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': 'An internal error has occurred.'}), 500
 
 # Debug route to check available routes
 @settings_bp.route('/api/debug-routes', methods=['GET'])

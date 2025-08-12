@@ -102,6 +102,24 @@ async function debugTest() {
     </div>
 
     <div class="card">
+        <h3>Appearance</h3>
+        
+        <div class="settings-section">
+            <h4>Theme</h4>
+            <p class="settings-description">Choose between light and dark mode for the interface.</p>
+            
+            <div class="theme-toggle">
+                <span class="theme-label">Light</span>
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle" onchange="window.toggleTheme()">
+                    <span class="theme-slider"></span>
+                </label>
+                <span class="theme-label">Dark</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
         <h3>Account Settings</h3>
 
         <div class="settings-section">

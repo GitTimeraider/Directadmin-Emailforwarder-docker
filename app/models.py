@@ -30,6 +30,9 @@ class User(UserMixin, db.Model):
     da_password_encrypted = db.Column(db.Text, nullable=True)
     da_domain = db.Column(db.String(255), nullable=True)
 
+    # User preferences
+    theme_preference = db.Column(db.String(20), default='light', nullable=True)  # 'light' or 'dark'
+
     # Unique encryption key per user for DA password
     encryption_key = db.Column(db.String(255), nullable=True)
 

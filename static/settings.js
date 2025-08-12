@@ -29,6 +29,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (config.has_password) {
             document.getElementById('da_password').placeholder = 'Password is set (leave empty to keep current)';
         }
+
+        // Load theme preference
+        if (config.theme_preference) {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.checked = config.theme_preference === 'dark';
+            }
+        }
     } catch (error) {
         console.error('Error loading settings:', error);
     }
