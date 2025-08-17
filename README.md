@@ -1,6 +1,6 @@
 # DirectAdmin Email Forwarder Manager (Dockerized)
 <p align="center" width="100%">
-    <img width="33%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/icon_main_25.png">
+    <img width="33%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/icon_main_25.png">
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -25,7 +25,7 @@ A Dockerized secure web application for managing email forwarders through the Di
 - **🔄 DirectAdmin Integration**: Direct API integration with DirectAdmin servers
 - **📊 Real-time Updates**: Automatic refresh of forwarder list
 <p align="center" width="100%">
-    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/dashboard.jpg">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/dashboard.jpg">
 </p>
 
 
@@ -36,7 +36,7 @@ A Dockerized secure web application for managing email forwarders through the Di
 - **Docker** (recommended): Docker Engine 20.10+ and Docker Compose 2.0+
 
 <p align="center" width="100%">
-    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/directadmin2.jpg">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/directadmin2.jpg">
 </p>
 
 ## 🚀 Quick Start
@@ -147,7 +147,7 @@ Only administrators can access user management at `/admin/users`
 -   Last login time
 
 <p align="center" width="100%">
-    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/img/Directadmin-Emailforwarder/users.jpg">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/users.jpg">
 </p>
 
 
