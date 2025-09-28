@@ -254,7 +254,7 @@ document.getElementById('new_domain').addEventListener('keypress', (e) => {
 
 
 // Test connection function - COMPLETELY SEPARATE
-async function testConnection() {
+async function testConnection(event) {
     console.log('testConnection called');
     const testButton = event.target;
     const originalText = testButton.textContent;
