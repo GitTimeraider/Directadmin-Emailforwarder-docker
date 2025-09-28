@@ -55,10 +55,28 @@ def create_app():
 
     # ===== API Routes =====
 
+    @app.route('/api/domains', methods=['GET'])
+    @login_required
+    def get_user_domains():
+        """Get all domains for the current user"""
+        try:
+            domains = current_user.get_domains()
+            return jsonify({
+                'success': True,
+                'domains': domains
+            })
+        except Exception as e:
+            print(f"Error in /api/domains: {str(e)}")
+            traceback.print_exc()
+            return jsonify({
+                'error': 'Failed to fetch domains',
+                'domains': []
+            }), 500
+
     @app.route('/api/email-accounts', methods=['GET'])
     @login_required
     def get_email_accounts():
-        """Get all email accounts for the configured domain"""
+        """Get all email accounts for the specified domain"""
         if not current_user.has_da_config():
             return jsonify({
                 'error': 'DirectAdmin not configured',
@@ -66,12 +84,31 @@ def create_app():
             }), 400
 
         try:
+            # Get domain from query parameter or use first domain
+            domain = request.args.get('domain')
+            if not domain:
+                domain = current_user.get_first_domain()
+            
+            if not domain:
+                return jsonify({
+                    'error': 'No domain specified',
+                    'accounts': []
+                }), 400
+
+            # Verify user has access to this domain
+            user_domains = current_user.get_domains()
+            if domain not in user_domains:
+                return jsonify({
+                    'error': 'Access denied to domain',
+                    'accounts': []
+                }), 403
+
             # Create API instance
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
                 current_user.get_da_password(),
-                current_user.da_domain
+                domain
             )
 
             # Get email accounts
@@ -81,11 +118,12 @@ def create_app():
             if not isinstance(accounts, list):
                 accounts = []
 
-            print(f"API returning {len(accounts)} email accounts")
+            print(f"API returning {len(accounts)} email accounts for domain {domain}")
 
             return jsonify({
                 'success': True,
-                'accounts': accounts
+                'accounts': accounts,
+                'domain': domain
             })
 
         except Exception as e:
@@ -99,7 +137,7 @@ def create_app():
     @app.route('/api/forwarders', methods=['GET'])
     @login_required
     def get_forwarders():
-        """Get all email forwarders"""
+        """Get all email forwarders for the specified domain"""
         if not current_user.has_da_config():
             return jsonify({
                 'error': 'DirectAdmin not configured',
@@ -107,12 +145,31 @@ def create_app():
             }), 400
 
         try:
+            # Get domain from query parameter or use first domain
+            domain = request.args.get('domain')
+            if not domain:
+                domain = current_user.get_first_domain()
+            
+            if not domain:
+                return jsonify({
+                    'error': 'No domain specified',
+                    'forwarders': []
+                }), 400
+
+            # Verify user has access to this domain
+            user_domains = current_user.get_domains()
+            if domain not in user_domains:
+                return jsonify({
+                    'error': 'Access denied to domain',
+                    'forwarders': []
+                }), 403
+
             # Create API instance
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
                 current_user.get_da_password(),
-                current_user.da_domain
+                domain
             )
 
             # Get forwarders
@@ -122,11 +179,12 @@ def create_app():
             if not isinstance(forwarders, list):
                 forwarders = []
 
-            print(f"API returning {len(forwarders)} forwarders")
+            print(f"API returning {len(forwarders)} forwarders for domain {domain}")
 
             return jsonify({
                 'success': True,
-                'forwarders': forwarders
+                'forwarders': forwarders,
+                'domain': domain
             })
 
         except Exception as e:
@@ -152,6 +210,7 @@ def create_app():
 
             address = data.get('address', '').strip()
             destination = data.get('destination', '').strip()
+            domain = data.get('domain', '').strip()
 
             # Validate inputs
             if not address:
@@ -160,12 +219,24 @@ def create_app():
             if not destination:
                 return jsonify({'error': 'Destination email is required'}), 400
 
+            # Get domain or use first domain
+            if not domain:
+                domain = current_user.get_first_domain()
+            
+            if not domain:
+                return jsonify({'error': 'No domain specified'}), 400
+
+            # Verify user has access to this domain
+            user_domains = current_user.get_domains()
+            if domain not in user_domains:
+                return jsonify({'error': 'Access denied to domain'}), 403
+
             # Create API instance
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
                 current_user.get_da_password(),
-                current_user.da_domain
+                domain
             )
 
             # Create the forwarder
@@ -174,7 +245,8 @@ def create_app():
             if success:
                 return jsonify({
                     'success': True,
-                    'message': message
+                    'message': message,
+                    'domain': domain
                 })
             else:
                 return jsonify({
@@ -202,16 +274,31 @@ def create_app():
                 return jsonify({'error': 'No data provided'}), 400
 
             address = data.get('address', '').strip()
+            domain = data.get('domain', '').strip()
 
             if not address:
                 return jsonify({'error': 'Email address is required'}), 400
+
+            # Extract domain from address if not provided
+            if not domain and '@' in address:
+                domain = address.split('@')[1]
+            elif not domain:
+                domain = current_user.get_first_domain()
+            
+            if not domain:
+                return jsonify({'error': 'No domain specified'}), 400
+
+            # Verify user has access to this domain
+            user_domains = current_user.get_domains()
+            if domain not in user_domains:
+                return jsonify({'error': 'Access denied to domain'}), 403
 
             # Create API instance
             api = DirectAdminAPI(
                 current_user.da_server,
                 current_user.da_username,
                 current_user.get_da_password(),
-                current_user.da_domain
+                domain
             )
 
             # Delete the forwarder
@@ -220,7 +307,8 @@ def create_app():
             if success:
                 return jsonify({
                     'success': True,
-                    'message': message
+                    'message': message,
+                    'domain': domain
                 })
             else:
                 return jsonify({
@@ -271,34 +359,7 @@ def create_app():
 
     # ===== Database Initialization =====
 
-    # Ensure DB initialization only once (important with multi-worker if --preload not used)
-    if not app.config.get('_DB_INITIALIZED', False):
-        with app.app_context():
-            print(f"Initializing database at URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            db.create_all()
-
-            # Create default admin user only if no administrators exist
-            admin_count = User.query.filter_by(is_admin=True).count()
-            if admin_count == 0:
-                # No administrators exist, create default admin user
-                admin_user = User(username='admin', is_admin=True)
-                admin_user.set_password('changeme')  # Default password
-                db.session.add(admin_user)
-                try:
-                    db.session.commit()
-                    print("=" * 50)
-                    print("Default admin user created!")
-                    print("Username: admin")
-                    print("Password: changeme")
-                    print("PLEASE CHANGE THIS PASSWORD IMMEDIATELY!")
-                    print("=" * 50)
-                except Exception as e:
-                    print(f"Error creating admin user: {e}")
-                    db.session.rollback()
-            else:
-                print(f"Found {admin_count} administrator(s) - skipping default admin creation")
-
-            app.config['_DB_INITIALIZED'] = True
+        # Ensure DB initialization only once (important with multi-worker if --preload not used)\n    if not app.config.get('_DB_INITIALIZED', False):\n        with app.app_context():\n            print(f\"Initializing database at URI: {app.config['SQLALCHEMY_DATABASE_URI']}\")\n            db.create_all()\n\n            # Migrate existing users from single domain to multi-domain\n            print(\"Checking for users to migrate to multi-domain...\")\n            users_to_migrate = User.query.filter(\n                User.da_domain.isnot(None),\n                ~User.domains.any()\n            ).all()\n            \n            for user in users_to_migrate:\n                print(f\"Migrating user {user.username} with domain {user.da_domain}\")\n                success, message = user.add_domain(user.da_domain)\n                if success:\n                    print(f\"  ✓ Migrated {user.username}: {message}\")\n                else:\n                    print(f\"  ✗ Failed to migrate {user.username}: {message}\")\n            \n            if users_to_migrate:\n                try:\n                    db.session.commit()\n                    print(f\"Successfully migrated {len(users_to_migrate)} users to multi-domain.\")\n                except Exception as e:\n                    print(f\"Error during migration: {e}\")\n                    db.session.rollback()\n\n            # Create default admin user only if no administrators exist\n            admin_count = User.query.filter_by(is_admin=True).count()\n            if admin_count == 0:\n                # No administrators exist, create default admin user\n                admin_user = User(username='admin', is_admin=True)\n                admin_user.set_password('changeme')  # Default password\n                db.session.add(admin_user)\n                try:\n                    db.session.commit()\n                    print(\"=\" * 50)\n                    print(\"Default admin user created!\")\n                    print(\"Username: admin\")\n                    print(\"Password: changeme\")\n                    print(\"PLEASE CHANGE THIS PASSWORD IMMEDIATELY!\")\n                    print(\"=\" * 50)\n                except Exception as e:\n                    print(f\"Error creating admin user: {e}\")\n                    db.session.rollback()\n            else:\n                print(f\"Found {admin_count} administrator(s) - skipping default admin creation\")\n\n            app.config['_DB_INITIALIZED'] = True
 
     # ===== Additional App Configuration =====
 

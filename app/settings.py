@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
-from app.models import db
+from app.models import db, UserDomain
 from app.directadmin_api import DirectAdminAPI
 import traceback
 
@@ -20,7 +20,8 @@ def get_da_config():
         return jsonify({
             'da_server': current_user.da_server or '',
             'da_username': current_user.da_username or '',
-            'da_domain': current_user.da_domain or '',
+            'da_domain': current_user.da_domain or '',  # Keep for backward compatibility
+            'domains': current_user.get_domains(),
             'has_password': bool(current_user.da_password_encrypted),
             'theme_preference': current_user.theme_preference or 'light'
         })
@@ -43,8 +44,8 @@ def update_da_config():
 
         print(f"Received data: {data}")
 
-        # Validate required fields
-        required_fields = ['da_server', 'da_username', 'da_domain']
+        # Validate required fields (domain no longer required here)
+        required_fields = ['da_server', 'da_username']
         missing_fields = [field for field in required_fields if not data.get(field, '').strip()]
 
         if missing_fields:
@@ -65,7 +66,10 @@ def update_da_config():
         # Update settings
         current_user.da_server = server_url.rstrip('/')
         current_user.da_username = data['da_username'].strip()
-        current_user.da_domain = data['da_domain'].strip()
+        
+        # Keep da_domain for backward compatibility with first domain
+        if data.get('da_domain'):
+            current_user.da_domain = data['da_domain'].strip()
 
         # Update password if provided
         if data.get('da_password'):
@@ -123,6 +127,128 @@ def test_connection():
         print(f"Test connection error: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': 'An internal error has occurred.', 'success': False}), 200
+
+@settings_bp.route('/api/domains', methods=['GET'])
+@login_required
+def get_domains():
+    """Get all domains for the current user"""
+    try:
+        domains = current_user.get_domains()
+        return jsonify({
+            'success': True,
+            'domains': domains
+        })
+    except Exception as e:
+        print(f"Error getting domains: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': 'An internal error has occurred.'}), 500
+
+@settings_bp.route('/api/domains', methods=['POST'])
+@login_required
+def add_domain():
+    """Add a new domain for the current user"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('domain'):
+            return jsonify({'error': 'Domain is required'}), 400
+
+        domain = data['domain'].strip()
+        if not domain:
+            return jsonify({'error': 'Domain cannot be empty'}), 400
+
+        # Basic domain validation
+        if not '.' in domain or ' ' in domain:
+            return jsonify({'error': 'Invalid domain format'}), 400
+
+        success, message = current_user.add_domain(domain)
+        
+        if success:
+            # Update da_domain if this is the first domain (backward compatibility)
+            if not current_user.da_domain:
+                current_user.da_domain = domain
+            
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': message,
+                'domains': current_user.get_domains()
+            })
+        else:
+            return jsonify({'error': message}), 400
+
+    except Exception as e:
+        print(f"Error adding domain: {str(e)}")
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': 'An internal error has occurred.'}), 500
+
+@settings_bp.route('/api/domains', methods=['DELETE'])
+@login_required
+def remove_domain():
+    """Remove a domain for the current user"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('domain'):
+            return jsonify({'error': 'Domain is required'}), 400
+
+        domain = data['domain'].strip()
+        success, message = current_user.remove_domain(domain)
+        
+        if success:
+            # Update da_domain if we removed the current one
+            if current_user.da_domain == domain:
+                first_domain = current_user.get_first_domain()
+                current_user.da_domain = first_domain
+            
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': message,
+                'domains': current_user.get_domains()
+            })
+        else:
+            return jsonify({'error': message}), 400
+
+    except Exception as e:
+        print(f"Error removing domain: {str(e)}")
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': 'An internal error has occurred.'}), 500
+
+@settings_bp.route('/api/domains/reorder', methods=['POST'])
+@login_required
+def reorder_domains():
+    """Reorder domains for the current user"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('domains'):
+            return jsonify({'error': 'Domains list is required'}), 400
+
+        domains = data['domains']
+        if not isinstance(domains, list):
+            return jsonify({'error': 'Domains must be a list'}), 400
+
+        success, message = current_user.reorder_domains(domains)
+        
+        if success:
+            # Update da_domain to the first domain (backward compatibility)
+            if domains:
+                current_user.da_domain = domains[0]
+            
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': message,
+                'domains': current_user.get_domains()
+            })
+        else:
+            return jsonify({'error': message}), 400
+
+    except Exception as e:
+        print(f"Error reordering domains: {str(e)}")
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': 'An internal error has occurred.'}), 500
 
 @settings_bp.route('/api/theme', methods=['POST'])
 @login_required

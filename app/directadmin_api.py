@@ -69,7 +69,7 @@ class DirectAdminAPI:
 
                 # Format 1: URL encoded (key=value&key2=value2)
                 if '=' in text and not text.startswith('<!'):
-                    # Handle special case for lists
+                    # Handle special case for lists with duplicate keys
                     if 'list[]=' in text:
                         items = []
                         for part in text.split('&'):
@@ -77,11 +77,21 @@ class DirectAdminAPI:
                                 items.append(urllib.parse.unquote(part[7:]))
                         return {'list': items}
 
-                    # Standard key=value parsing
+                    # Standard key=value parsing - handle duplicate keys by collecting all values
                     for pair in text.split('&'):
                         if '=' in pair:
                             key, value = pair.split('=', 1)
-                            result[urllib.parse.unquote(key)] = urllib.parse.unquote(value)
+                            key_decoded = urllib.parse.unquote(key)
+                            value_decoded = urllib.parse.unquote(value)
+                            
+                            # If key already exists, convert to list or append to existing list
+                            if key_decoded in result:
+                                if not isinstance(result[key_decoded], list):
+                                    # Convert existing single value to list
+                                    result[key_decoded] = [result[key_decoded]]
+                                result[key_decoded].append(value_decoded)
+                            else:
+                                result[key_decoded] = value_decoded
 
                     # IMPORTANT: Check if this is an error response
                     # error=0 means SUCCESS in DirectAdmin!
@@ -206,8 +216,21 @@ class DirectAdminAPI:
 
                 # Format 1: list format
                 if 'list' in response:
-                    accounts = response['list']
-                # Format 2: numbered keys (0, 1, 2, etc)
+                    list_data = response['list']
+                    if isinstance(list_data, list):
+                        accounts = list_data
+                    else:
+                        accounts = [list_data]  # Single item, convert to list
+                        
+                # Format 2: list[] key (from fixed parsing)
+                elif 'list[]' in response:
+                    list_data = response['list[]']
+                    if isinstance(list_data, list):
+                        accounts = list_data
+                    else:
+                        accounts = [list_data]  # Single item, convert to list
+                        
+                # Format 3: numbered keys (0, 1, 2, etc)
                 elif any(key.isdigit() for key in response.keys()):
                     for key in sorted(response.keys()):
                         if key.isdigit() and response[key]:
@@ -215,16 +238,23 @@ class DirectAdminAPI:
                                 accounts.append(response[key])
                             else:
                                 accounts.append(f"{response[key]}@{self.domain}")
-                # Format 3: email addresses as keys
+                                
+                # Format 4: email addresses as keys
                 else:
                     for key, value in response.items():
                         if '@' in key and not key.startswith('error'):
                             accounts.append(key)
                         elif value and '@' in str(value):
-                            accounts.append(str(value))
+                            if isinstance(value, list):
+                                accounts.extend([str(v) for v in value])
+                            else:
+                                accounts.append(str(value))
                         elif value and not key.startswith('error'):
-                            # Might be just username
-                            accounts.append(f"{value}@{self.domain}")
+                            # Might be just username(s)
+                            if isinstance(value, list):
+                                accounts.extend([f"{v}@{self.domain}" for v in value])
+                            else:
+                                accounts.append(f"{value}@{self.domain}")
 
             elif isinstance(response, str) and response:
                 print("Response is string, parsing...")
@@ -237,12 +267,24 @@ class DirectAdminAPI:
                     elif line and not line.startswith('error'):
                         accounts.append(f"{line}@{self.domain}")
 
-            # Remove duplicates and filter
-            accounts = list(set(accounts))
+            # Ensure all accounts have domain part
+            processed_accounts = []
+            for account in accounts:
+                if account:  # Skip empty strings
+                    if '@' not in account:
+                        # Add domain if missing
+                        processed_accounts.append(f"{account}@{self.domain}")
+                    else:
+                        processed_accounts.append(account)
+
+            # Remove duplicates and filter out API user
+            processed_accounts = list(set(processed_accounts))
             api_email = f"{self.username}@{self.domain}"
-            filtered = [email for email in accounts if email.lower() != api_email.lower()]
+            filtered = [email for email in processed_accounts if email.lower() != api_email.lower()]
 
             print(f"Found {len(filtered)} email accounts (excluding API user)")
+            for account in filtered:
+                print(f"  - {account}")
             return sorted(filtered)
 
         except Exception as e:

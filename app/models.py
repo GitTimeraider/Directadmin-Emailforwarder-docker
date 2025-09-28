@@ -9,6 +9,28 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+class UserDomain(db.Model):
+    """Model for storing multiple domains per user"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    domain = db.Column(db.String(255), nullable=False)
+    order_index = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship back to user
+    user = db.relationship('User', backref=db.backref('domains', lazy=True, order_by='UserDomain.order_index'))
+    
+    def __repr__(self):
+        return f'<UserDomain {self.domain} for user {self.user_id}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'domain': self.domain,
+            'order_index': self.order_index,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
 class User(UserMixin, db.Model):
     # Primary fields
     id = db.Column(db.Integer, primary_key=True)
@@ -95,9 +117,67 @@ class User(UserMixin, db.Model):
         return all([
             self.da_server, 
             self.da_username, 
-            self.da_password_encrypted, 
-            self.da_domain
-        ])
+            self.da_password_encrypted
+        ]) and len(self.get_domains()) > 0
+
+    # ===== Domain Management =====
+    
+    def get_domains(self):
+        """Get all domains for this user in order"""
+        return [d.domain for d in self.domains]
+    
+    def get_first_domain(self):
+        """Get the first domain (default) for this user"""
+        domains = self.get_domains()
+        return domains[0] if domains else None
+    
+    def add_domain(self, domain):
+        """Add a new domain for this user"""
+        # Check if domain already exists
+        existing = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
+        if existing:
+            return False, "Domain already exists"
+        
+        # Get next order index
+        max_order = db.session.query(db.func.max(UserDomain.order_index)).filter_by(user_id=self.id).scalar()
+        next_order = (max_order or -1) + 1
+        
+        # Create new domain
+        user_domain = UserDomain(
+            user_id=self.id,
+            domain=domain,
+            order_index=next_order
+        )
+        
+        db.session.add(user_domain)
+        return True, "Domain added successfully"
+    
+    def remove_domain(self, domain):
+        """Remove a domain for this user"""
+        user_domain = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
+        if not user_domain:
+            return False, "Domain not found"
+        
+        db.session.delete(user_domain)
+        
+        # Reorder remaining domains
+        remaining_domains = UserDomain.query.filter_by(user_id=self.id).filter(
+            UserDomain.order_index > user_domain.order_index
+        ).all()
+        
+        for domain_obj in remaining_domains:
+            domain_obj.order_index -= 1
+        
+        return True, "Domain removed successfully"
+    
+    def reorder_domains(self, domain_list):
+        """Reorder domains based on provided list"""
+        for i, domain in enumerate(domain_list):
+            user_domain = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
+            if user_domain:
+                user_domain.order_index = i
+        
+        return True, "Domains reordered successfully"
 
     # ===== TOTP/2FA Management =====
 
@@ -155,7 +235,8 @@ class User(UserMixin, db.Model):
             'has_da_config': self.has_da_config(),
             'da_server': self.da_server,
             'da_username': self.da_username,
-            'da_domain': self.da_domain
+            'da_domain': self.da_domain,  # Keep for backward compatibility
+            'domains': self.get_domains()
             # Never include passwords or secrets in dict!
         }
 
