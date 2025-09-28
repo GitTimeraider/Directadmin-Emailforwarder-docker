@@ -253,7 +253,7 @@ document.getElementById('new_domain').addEventListener('keypress', (e) => {
 });
 
 
-// Test connection function - COMPLETELY SEPARATE
+// Test connection function - COMPLETELY SEPARATE - Updated 2025-09-28-15:30
 async function testConnection(event) {
     console.log('testConnection called with event:', event);
     
@@ -337,10 +337,16 @@ async function testConnection(event) {
         if (result.success) {
             console.log('Connection test successful, showing success message');
             showMessage('success', '✓ ' + result.message);
+            console.log('About to reset button after success...');
         } else {
             console.log('Connection test failed, showing error message');
             showMessage('warning', '✗ Connection failed: ' + (result.error || result.message || 'Unknown error') + '\nYou can still save these settings.');
+            console.log('About to reset button after failure...');
         }
+        
+        // Force immediate button reset here as well
+        console.log('Forcing immediate button reset...');
+        resetButton();
     } catch (error) {
         console.error('Error testing connection:', error);
         if (error.name === 'AbortError') {
@@ -350,14 +356,35 @@ async function testConnection(event) {
         }
     } finally {
         console.log('testConnection finally block executing...');
+        
+        // Multiple attempts to reset the button
         try {
             resetButton();
             console.log('testConnection completed, button reset successfully');
         } catch (resetError) {
-            console.error('Error resetting button:', resetError);
-            // Fallback button reset
-            testButton.textContent = 'Test Connection';
+            console.error('Error resetting button with resetButton():', resetError);
+        }
+        
+        // Always try direct button reset as backup
+        try {
+            console.log('Attempting direct button reset...');
+            testButton.textContent = originalText || 'Test Connection';
             testButton.disabled = false;
+            console.log('Direct button reset completed');
+        } catch (directResetError) {
+            console.error('Error with direct button reset:', directResetError);
+        }
+        
+        // Ultimate fallback - find button by ID and reset
+        try {
+            const btn = document.getElementById('test-connection-btn');
+            if (btn) {
+                console.log('Ultimate fallback: resetting button by ID');
+                btn.textContent = 'Test Connection';
+                btn.disabled = false;
+            }
+        } catch (fallbackError) {
+            console.error('Ultimate fallback failed:', fallbackError);
         }
     }
 }
