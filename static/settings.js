@@ -254,9 +254,24 @@ document.getElementById('new_domain').addEventListener('keypress', (e) => {
 
 
 // Test connection function - COMPLETELY SEPARATE
+// Add debugging to window object
+window.debugTestConnection = function() {
+    console.log('Debug test connection function exists');
+    alert('Debug: testConnection function is accessible');
+};
+
 async function testConnection(event) {
-    console.log('testConnection called');
+    console.log('testConnection called with event:', event);
+    alert('testConnection function called!'); // Immediate feedback
+    
+    if (!event) {
+        console.error('No event passed to testConnection');
+        alert('Error: No event object passed to testConnection function');
+        return;
+    }
+    
     const testButton = event.target;
+    console.log('testButton:', testButton);
     const originalText = testButton.textContent;
     
     // Ensure we always reset the button state
@@ -327,6 +342,21 @@ async function testConnection(event) {
         console.log('testConnection completed, button reset');
     }
 }
+
+// Alternative event listener approach
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, setting up test connection button');
+    const testBtn = document.getElementById('test-connection-btn');
+    if (testBtn) {
+        console.log('Found test connection button, adding event listener');
+        testBtn.addEventListener('click', function(event) {
+            console.log('Test connection button clicked via event listener');
+            testConnection(event);
+        });
+    } else {
+        console.error('Could not find test connection button with id test-connection-btn');
+    }
+});
 
 // Helper function to show messages
 function showMessage(type, message) {
