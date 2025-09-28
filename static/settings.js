@@ -254,15 +254,8 @@ document.getElementById('new_domain').addEventListener('keypress', (e) => {
 
 
 // Test connection function - COMPLETELY SEPARATE
-// Add debugging to window object
-window.debugTestConnection = function() {
-    console.log('Debug test connection function exists');
-    alert('Debug: testConnection function is accessible');
-};
-
 async function testConnection(event) {
     console.log('testConnection called with event:', event);
-    alert('testConnection function called!'); // Immediate feedback
     
     if (!event) {
         console.error('No event passed to testConnection');
@@ -283,11 +276,24 @@ async function testConnection(event) {
     testButton.textContent = 'Testing...';
     testButton.disabled = true;
 
+    // Get form elements with null checks
+    const serverEl = document.getElementById('da_server');
+    const usernameEl = document.getElementById('da_username');
+    const passwordEl = document.getElementById('da_password');
+    const domainEl = document.getElementById('da_domain'); // This might not exist
+    
+    if (!serverEl || !usernameEl || !passwordEl) {
+        console.error('Missing required form elements');
+        alert('Error: Required form elements not found on page');
+        resetButton();
+        return;
+    }
+
     const formData = {
-        da_server: document.getElementById('da_server').value.trim(),
-        da_username: document.getElementById('da_username').value.trim(),
-        da_password: document.getElementById('da_password').value,
-        da_domain: document.getElementById('da_domain').value.trim()
+        da_server: serverEl.value.trim(),
+        da_username: usernameEl.value.trim(),
+        da_password: passwordEl.value,
+        da_domain: domainEl ? domainEl.value.trim() : '' // Optional field
     };
 
     if (!formData.da_server || !formData.da_username) {
