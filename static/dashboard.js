@@ -1,6 +1,8 @@
 // Dashboard functionality for DirectAdmin Email Forwarder
 let currentForwarders = [];
 let emailAccounts = [];
+let availableDomains = [];
+let selectedDomain = null;
 
 // Helper function to validate destinations (including special ones)
 function isValidDestination(destination) {
@@ -14,10 +16,106 @@ function isValidDestination(destination) {
     return emailRegex.test(destination);
 }
 
+// Load available domains
+async function loadDomains() {
+    try {
+        const response = await fetch('/api/domains');
+        const data = await response.json();
+
+        if (response.ok && data.domains) {
+            availableDomains = data.domains;
+            
+            // Set selected domain to first domain if not set
+            if (!selectedDomain && availableDomains.length > 0) {
+                selectedDomain = availableDomains[0];
+            }
+            
+            updateDomainSelector();
+            updateDomainSuffix();
+            
+            // Load data for selected domain
+            if (selectedDomain) {
+                await loadEmailAccounts();
+                await loadForwarders();
+            }
+        } else {
+            console.error('Failed to load domains:', data.error);
+            showMessage('Failed to load domains', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading domains:', error);
+        showMessage('Error loading domains', 'error');
+    }
+}
+
+// Update domain selector dropdown
+function updateDomainSelector() {
+    const select = document.getElementById('domainSelect');
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    if (availableDomains.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No domains configured';
+        option.disabled = true;
+        option.selected = true;
+        select.appendChild(option);
+        return;
+    }
+
+    availableDomains.forEach(domain => {
+        const option = document.createElement('option');
+        option.value = domain;
+        option.textContent = domain;
+        option.selected = domain === selectedDomain;
+        select.appendChild(option);
+    });
+}
+
+// Update domain suffix in form
+function updateDomainSuffix() {
+    const suffix = document.getElementById('domainSuffix');
+    if (suffix) {
+        suffix.textContent = selectedDomain ? `@${selectedDomain}` : '@no-domain';
+    }
+}
+
+// Switch to different domain
+async function switchDomain() {
+    const select = document.getElementById('domainSelect');
+    if (!select) return;
+
+    const newDomain = select.value;
+    if (newDomain === selectedDomain) return;
+
+    selectedDomain = newDomain;
+    updateDomainSuffix();
+    
+    // Clear current data
+    currentForwarders = [];
+    emailAccounts = [];
+    
+    // Load new data
+    if (selectedDomain) {
+        await loadEmailAccounts();
+        await loadForwarders();
+    }
+}
+
+// Make switchDomain globally available
+window.switchDomain = switchDomain;
+
 // Load email accounts for destination dropdown
 async function loadEmailAccounts() {
+    if (!selectedDomain) {
+        console.log('No domain selected, skipping email accounts load');
+        return;
+    }
+
     try {
-        const response = await fetch('/api/email-accounts');
+        const response = await fetch(`/api/email-accounts?domain=${encodeURIComponent(selectedDomain)}`);
         const data = await response.json();
 
         if (response.ok && data.accounts) {
@@ -25,10 +123,19 @@ async function loadEmailAccounts() {
             updateDestinationDropdown();
         } else {
             console.error('Failed to load email accounts:', data.error);
-            showMessage('Failed to load email accounts', 'error');
+            if (response.status === 403) {
+                showMessage(`Domain access denied: ${selectedDomain} may not be configured in your DirectAdmin account`, 'error');
+            } else {
+                showMessage(`Failed to load email accounts for ${selectedDomain}: ${data.error || 'Unknown error'}`, 'error');
+            }
+            
+            // Clear dropdown on error
+            updateDestinationDropdown();
         }
     } catch (error) {
         console.error('Error loading email accounts:', error);
+        showMessage(`Error loading email accounts for ${selectedDomain}`, 'error');
+        updateDestinationDropdown();
     }
 }
 
@@ -92,8 +199,13 @@ async function loadForwarders() {
     const tbody = document.querySelector('#forwardersTable tbody');
     if (!tbody) return;
 
+    if (!selectedDomain) {
+        tbody.innerHTML = '<tr><td colspan="3" class="no-data">No domain selected</td></tr>';
+        return;
+    }
+
     try {
-        const response = await fetch('/api/forwarders');
+        const response = await fetch(`/api/forwarders?domain=${encodeURIComponent(selectedDomain)}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -114,7 +226,12 @@ async function loadForwarders() {
 
     } catch (error) {
         console.error('Error loading forwarders:', error);
-        tbody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load forwarders. Please check your DirectAdmin settings.</td></tr>';
+        
+        if (error.response && error.response.status === 403) {
+            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Domain access denied: ' + selectedDomain + ' may not be configured in your DirectAdmin account.</td></tr>';
+        } else {
+            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load forwarders for ' + selectedDomain + '. Please check your DirectAdmin settings.</td></tr>';
+        }
     }
 }
 
@@ -209,7 +326,8 @@ async function createForwarder(event) {
             },
             body: JSON.stringify({
                 address: addressInput.value.trim(),
-                destination: destination
+                destination: destination,
+                domain: selectedDomain
             })
         });
 
@@ -261,7 +379,8 @@ async function deleteForwarder(address) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                address: address
+                address: address,
+                domain: selectedDomain
             })
         });
 
@@ -327,11 +446,14 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing dashboard...');
 
     // Load initial data
-    loadEmailAccounts();
-    loadForwarders();
+    loadDomains();
 
     // Set up auto-refresh every 60 seconds
-    setInterval(loadForwarders, 60000);
+    setInterval(() => {
+        if (selectedDomain) {
+            loadForwarders();
+        }
+    }, 60000);
 
     // Set up form handler
     const form = document.getElementById('createForwarderForm');

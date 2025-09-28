@@ -1160,3 +1160,134 @@ input:checked + .theme-slider:before {
     display: inline-block;
     margin-top: 0.5rem;
 }
+
+/* Domain Management Styles */
+.domain-management {
+    margin-top: 1rem;
+}
+
+.domain-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.domain-input-group input {
+    flex: 1;
+}
+
+.domain-input-group button {
+    height: fit-content;
+    padding: 0.5rem 1rem;
+}
+
+.domains-list {
+    margin-top: 2rem;
+}
+
+.domains-list h4 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.no-domains {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--background-color);
+    border-radius: 4px;
+}
+
+.domains-list-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.domain-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.domain-item:hover {
+    background-color: var(--background-color);
+}
+
+.domain-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.domain-name {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.domain-badge {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.domain-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: 24px;
+}
+
+.btn-small:hover {
+    background-color: var(--secondary-hover);
+}
+
+.btn-small.btn-danger {
+    background-color: #dc3545;
+}
+
+.btn-small.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Domain selector dropdown styles (for dashboard) */
+.domain-selector {
+    margin-bottom: 1rem;
+}
+
+.domain-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.domain-selector select {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    font-size: 1rem;
+}
