@@ -201,10 +201,15 @@ class DirectAdminAPI:
                                 domain_list.append(key)
 
                         print(f"Found domains: {domain_list}")
-                        if self.domain in domain_list:
-                            return True, f"Successfully connected. Domain {self.domain} found."
+                        domain_count = len(domain_list)
+                        
+                        if self.domain:
+                            if self.domain in domain_list:
+                                return True, f"Successfully connected. Domain {self.domain} found. Total domains: {domain_count} ({', '.join(domain_list[:3])}{'...' if domain_count > 3 else ''})"
+                            else:
+                                return True, f"Connected, but domain {self.domain} not found in account. Available domains ({domain_count}): {', '.join(domain_list[:5])}{'...' if domain_count > 5 else ''}"
                         else:
-                            return True, f"Connected, but domain {self.domain} not found in account. Available domains: {', '.join(domain_list[:3])}{'...' if len(domain_list) > 3 else ''}"
+                            return True, f"Successfully connected. Found {domain_count} domains: {', '.join(domain_list[:5])}{'...' if domain_count > 5 else ''}"
                     else:
                         return True, "Successfully connected to DirectAdmin."
                 else:

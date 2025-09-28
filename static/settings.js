@@ -269,10 +269,13 @@ async function testConnection(event) {
     
     // Ensure we always reset the button state
     const resetButton = () => {
+        console.log('Resetting button from:', testButton.textContent, 'to:', originalText);
         testButton.textContent = originalText;
         testButton.disabled = false;
+        console.log('Button reset complete:', testButton.textContent, 'disabled:', testButton.disabled);
     };
     
+    console.log('Setting button to Testing...');
     testButton.textContent = 'Testing...';
     testButton.disabled = true;
 
@@ -310,7 +313,7 @@ async function testConnection(event) {
         const timeoutId = setTimeout(() => {
             console.log('Connection test timeout reached, aborting...');
             controller.abort();
-        }, 15000); // 15 second timeout for faster debugging
+        }, 30000); // 30 second timeout
 
         const response = await fetch('/settings/api/test-connection', {
             method: 'POST',
@@ -332,8 +335,10 @@ async function testConnection(event) {
         console.log('Test response:', result);
 
         if (result.success) {
+            console.log('Connection test successful, showing success message');
             showMessage('success', '✓ ' + result.message);
         } else {
+            console.log('Connection test failed, showing error message');
             showMessage('warning', '✗ Connection failed: ' + (result.error || result.message || 'Unknown error') + '\nYou can still save these settings.');
         }
     } catch (error) {
@@ -344,8 +349,16 @@ async function testConnection(event) {
             showMessage('error', '✗ Test error: ' + error.message + '\nYou can still save these settings.');
         }
     } finally {
-        resetButton();
-        console.log('testConnection completed, button reset');
+        console.log('testConnection finally block executing...');
+        try {
+            resetButton();
+            console.log('testConnection completed, button reset successfully');
+        } catch (resetError) {
+            console.error('Error resetting button:', resetError);
+            // Fallback button reset
+            testButton.textContent = 'Test Connection';
+            testButton.disabled = false;
+        }
     }
 }
 

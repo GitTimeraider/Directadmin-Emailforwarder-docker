@@ -108,7 +108,10 @@ def test_connection():
         server = data.get('da_server') or current_user.da_server
         username = data.get('da_username') or current_user.da_username
         password = data.get('da_password') or current_user.get_da_password()
-        domain = data.get('da_domain') or current_user.da_domain
+        
+        # Get the first configured domain for testing, if any
+        user_domains = current_user.get_domains()
+        domain = user_domains[0] if user_domains else None
 
         print(f"Test connection with server: {server}, username: {username}, domain: {domain}")
 
