@@ -114,70 +114,114 @@ class User(UserMixin, db.Model):
 
     def has_da_config(self):
         """Check if user has configured DirectAdmin settings"""
+        try:
+            # Check if we have domains configured
+            domains = self.get_domains()
+            has_domains = len(domains) > 0
+        except Exception:
+            # If domains relationship fails, fall back to legacy da_domain
+            has_domains = bool(self.da_domain)
+        
         return all([
             self.da_server, 
             self.da_username, 
             self.da_password_encrypted
-        ]) and len(self.get_domains()) > 0
+        ]) and has_domains
 
     # ===== Domain Management =====
     
     def get_domains(self):
         """Get all domains for this user in order"""
-        return [d.domain for d in self.domains]
+        try:
+            # Try to get domains from the new multi-domain table
+            domains = [d.domain for d in self.domains]
+            
+            # If no domains in new table but legacy domain exists, include it
+            if not domains and self.da_domain:
+                return [self.da_domain]
+                
+            return domains
+        except Exception as e:
+            # If domains relationship fails (table doesn't exist or other error),
+            # fall back to legacy da_domain if available
+            if self.da_domain:
+                return [self.da_domain]
+            return []
     
     def get_first_domain(self):
         """Get the first domain (default) for this user"""
-        domains = self.get_domains()
-        return domains[0] if domains else None
+        try:
+            domains = self.get_domains()
+            if domains:
+                return domains[0]
+            # Fall back to legacy da_domain if no domains in new table
+            return self.da_domain
+        except Exception:
+            # If anything fails, return legacy da_domain
+            return self.da_domain
     
     def add_domain(self, domain):
         """Add a new domain for this user"""
-        # Check if domain already exists
-        existing = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
-        if existing:
-            return False, "Domain already exists"
-        
-        # Get next order index
-        max_order = db.session.query(db.func.max(UserDomain.order_index)).filter_by(user_id=self.id).scalar()
-        next_order = (max_order or -1) + 1
-        
-        # Create new domain
-        user_domain = UserDomain(
-            user_id=self.id,
-            domain=domain,
-            order_index=next_order
-        )
-        
-        db.session.add(user_domain)
-        return True, "Domain added successfully"
+        try:
+            # Check if domain already exists
+            existing = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
+            if existing:
+                return False, "Domain already exists"
+            
+            # Get next order index
+            max_order = db.session.query(db.func.max(UserDomain.order_index)).filter_by(user_id=self.id).scalar()
+            next_order = (max_order or -1) + 1
+            
+            # Create new domain
+            user_domain = UserDomain(
+                user_id=self.id,
+                domain=domain,
+                order_index=next_order
+            )
+            
+            db.session.add(user_domain)
+            return True, "Domain added successfully"
+            
+        except Exception as e:
+            print(f"Error adding domain {domain} for user {self.username}: {e}")
+            return False, f"Failed to add domain: {str(e)}"
     
     def remove_domain(self, domain):
         """Remove a domain for this user"""
-        user_domain = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
-        if not user_domain:
-            return False, "Domain not found"
-        
-        db.session.delete(user_domain)
-        
-        # Reorder remaining domains
-        remaining_domains = UserDomain.query.filter_by(user_id=self.id).filter(
-            UserDomain.order_index > user_domain.order_index
-        ).all()
-        
-        for domain_obj in remaining_domains:
-            domain_obj.order_index -= 1
-        
-        return True, "Domain removed successfully"
+        try:
+            user_domain = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
+            if not user_domain:
+                return False, "Domain not found"
+            
+            db.session.delete(user_domain)
+            
+            # Reorder remaining domains
+            remaining_domains = UserDomain.query.filter_by(user_id=self.id).filter(
+                UserDomain.order_index > user_domain.order_index
+            ).all()
+            
+            for domain_obj in remaining_domains:
+                domain_obj.order_index -= 1
+            
+            return True, "Domain removed successfully"
+            
+        except Exception as e:
+            print(f"Error removing domain {domain} for user {self.username}: {e}")
+            return False, f"Failed to remove domain: {str(e)}"
     
     def reorder_domains(self, domain_list):
         """Reorder domains based on provided list"""
-        for i, domain in enumerate(domain_list):
-            user_domain = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
-            if user_domain:
-                user_domain.order_index = i
-        
-        return True, "Domains reordered successfully"
+        try:
+            for i, domain in enumerate(domain_list):
+                user_domain = UserDomain.query.filter_by(user_id=self.id, domain=domain).first()
+                if user_domain:
+                    user_domain.order_index = i
+            
+            return True, "Domains reordered successfully"
+            
+        except Exception as e:
+            print(f"Error reordering domains for user {self.username}: {e}")
+            return False, f"Failed to reorder domains: {str(e)}"
 
     # ===== TOTP/2FA Management =====
 

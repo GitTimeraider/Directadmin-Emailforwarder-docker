@@ -48,10 +48,15 @@ def create_app():
     @login_required
     def dashboard():
         """Main dashboard page"""
-        if not current_user.has_da_config():
-            # Redirect to settings if DirectAdmin not configured
+        try:
+            if not current_user.has_da_config():
+                # Redirect to settings if DirectAdmin not configured
+                return redirect(url_for('settings.index'))
+            return render_template('dashboard.html')
+        except Exception as e:
+            print(f"Error in dashboard route: {e}")
+            # If there's an error (likely due to missing table), redirect to settings
             return redirect(url_for('settings.index'))
-        return render_template('dashboard.html')
 
     # ===== API Routes =====
 
@@ -61,6 +66,7 @@ def create_app():
         """Get all domains for the current user"""
         try:
             domains = current_user.get_domains()
+            
             return jsonify({
                 'success': True,
                 'domains': domains
@@ -68,9 +74,53 @@ def create_app():
         except Exception as e:
             print(f"Error in /api/domains: {str(e)}")
             traceback.print_exc()
+            
             return jsonify({
                 'error': 'Failed to fetch domains',
                 'domains': []
+            }), 500
+
+    @app.route('/api/migration-status', methods=['GET'])
+    @login_required
+    def get_migration_status():
+        """Get migration status for debugging"""
+        try:
+            from app.models import UserDomain
+            
+            status = {
+                'user_id': current_user.id,
+                'username': current_user.username,
+                'legacy_domain': current_user.da_domain,
+                'has_da_config': current_user.has_da_config()
+            }
+            
+            try:
+                # Check if UserDomain table exists
+                domain_count = UserDomain.query.filter_by(user_id=current_user.id).count()
+                user_domains = [d.domain for d in UserDomain.query.filter_by(user_id=current_user.id).all()]
+                
+                status.update({
+                    'table_exists': True,
+                    'domain_count': domain_count,
+                    'domains': user_domains,
+                    'migration_needed': current_user.da_domain and domain_count == 0
+                })
+            except Exception as e:
+                status.update({
+                    'table_exists': False,
+                    'table_error': str(e),
+                    'migration_needed': True
+                })
+            
+            return jsonify({
+                'success': True,
+                'status': status
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'error': f'Migration status check failed: {str(e)}',
+                'success': False
             }), 500
 
     @app.route('/api/email-accounts', methods=['GET'])
@@ -359,7 +409,127 @@ def create_app():
 
     # ===== Database Initialization =====
 
-        # Ensure DB initialization only once (important with multi-worker if --preload not used)\n    if not app.config.get('_DB_INITIALIZED', False):\n        with app.app_context():\n            print(f\"Initializing database at URI: {app.config['SQLALCHEMY_DATABASE_URI']}\")\n            db.create_all()\n\n            # Migrate existing users from single domain to multi-domain\n            print(\"Checking for users to migrate to multi-domain...\")\n            users_to_migrate = User.query.filter(\n                User.da_domain.isnot(None),\n                ~User.domains.any()\n            ).all()\n            \n            for user in users_to_migrate:\n                print(f\"Migrating user {user.username} with domain {user.da_domain}\")\n                success, message = user.add_domain(user.da_domain)\n                if success:\n                    print(f\"  ✓ Migrated {user.username}: {message}\")\n                else:\n                    print(f\"  ✗ Failed to migrate {user.username}: {message}\")\n            \n            if users_to_migrate:\n                try:\n                    db.session.commit()\n                    print(f\"Successfully migrated {len(users_to_migrate)} users to multi-domain.\")\n                except Exception as e:\n                    print(f\"Error during migration: {e}\")\n                    db.session.rollback()\n\n            # Create default admin user only if no administrators exist\n            admin_count = User.query.filter_by(is_admin=True).count()\n            if admin_count == 0:\n                # No administrators exist, create default admin user\n                admin_user = User(username='admin', is_admin=True)\n                admin_user.set_password('changeme')  # Default password\n                db.session.add(admin_user)\n                try:\n                    db.session.commit()\n                    print(\"=\" * 50)\n                    print(\"Default admin user created!\")\n                    print(\"Username: admin\")\n                    print(\"Password: changeme\")\n                    print(\"PLEASE CHANGE THIS PASSWORD IMMEDIATELY!\")\n                    print(\"=\" * 50)\n                except Exception as e:\n                    print(f\"Error creating admin user: {e}\")\n                    db.session.rollback()\n            else:\n                print(f\"Found {admin_count} administrator(s) - skipping default admin creation\")\n\n            app.config['_DB_INITIALIZED'] = True
+    # Ensure DB initialization only once (important with multi-worker if --preload not used)
+    if not app.config.get('_DB_INITIALIZED', False):
+        with app.app_context():
+            print(f"Initializing database at URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            
+            # Import models to ensure they're registered
+            from app.models import User, UserDomain
+            
+            # Check if we need to handle schema migration
+            needs_migration = False
+            try:
+                # Test if UserDomain table exists by trying a simple query
+                db.session.execute(db.text("SELECT COUNT(*) FROM user_domain")).scalar()
+                print("UserDomain table exists")
+            except Exception as e:
+                print(f"UserDomain table doesn't exist: {e}")
+                needs_migration = True
+            
+            # Always call create_all() to ensure all tables exist
+            db.create_all()
+            print("Database tables created/updated")
+            
+            # If we needed migration, migrate existing users
+            if needs_migration:
+                print("Performing automatic migration to multi-domain...")
+                
+                # Find all users with da_domain set
+                try:
+                    users_with_domains = User.query.filter(User.da_domain.isnot(None)).all()
+                    print(f"Found {len(users_with_domains)} users with domains to migrate")
+                    
+                    for user in users_with_domains:
+                        print(f"Migrating user {user.username} with domain {user.da_domain}")
+                        try:
+                            # Create UserDomain entry directly to avoid circular dependency
+                            existing_domain = UserDomain.query.filter_by(
+                                user_id=user.id, 
+                                domain=user.da_domain
+                            ).first()
+                            
+                            if not existing_domain:
+                                user_domain = UserDomain(
+                                    user_id=user.id,
+                                    domain=user.da_domain,
+                                    order_index=0
+                                )
+                                db.session.add(user_domain)
+                                print(f"  ✓ Created domain entry for {user.username}: {user.da_domain}")
+                            else:
+                                print(f"  - Domain already exists for {user.username}: {user.da_domain}")
+                                
+                        except Exception as e:
+                            print(f"  ✗ Error migrating {user.username}: {e}")
+                    
+                    # Commit migration changes
+                    try:
+                        db.session.commit()
+                        print(f"✓ Successfully migrated {len(users_with_domains)} users to multi-domain.")
+                    except Exception as e:
+                        print(f"✗ Error during migration commit: {e}")
+                        db.session.rollback()
+                        
+                except Exception as e:
+                    print(f"Error during user migration: {e}")
+                    db.session.rollback()
+            else:
+                # Check for users that have da_domain but no UserDomain entries
+                try:
+                    users_to_migrate = User.query.filter(
+                        User.da_domain.isnot(None),
+                        ~User.domains.any()
+                    ).all()
+                    
+                    if users_to_migrate:
+                        print(f"Found {len(users_to_migrate)} users needing domain migration...")
+                        
+                        for user in users_to_migrate:
+                            print(f"Migrating user {user.username} with domain {user.da_domain}")
+                            try:
+                                user_domain = UserDomain(
+                                    user_id=user.id,
+                                    domain=user.da_domain,
+                                    order_index=0
+                                )
+                                db.session.add(user_domain)
+                                print(f"  ✓ Created domain entry for {user.username}: {user.da_domain}")
+                            except Exception as e:
+                                print(f"  ✗ Error migrating {user.username}: {e}")
+                        
+                        try:
+                            db.session.commit()
+                            print(f"✓ Successfully migrated {len(users_to_migrate)} users to multi-domain.")
+                        except Exception as e:
+                            print(f"✗ Error during migration commit: {e}")
+                            db.session.rollback()
+                            
+                except Exception as e:
+                    print(f"Error checking for migration: {e}")
+
+            # Create default admin user only if no administrators exist
+            admin_count = User.query.filter_by(is_admin=True).count()
+            if admin_count == 0:
+                # No administrators exist, create default admin user
+                admin_user = User(username='admin', is_admin=True)
+                admin_user.set_password('changeme')  # Default password
+                db.session.add(admin_user)
+                try:
+                    db.session.commit()
+                    print("=" * 50)
+                    print("Default admin user created!")
+                    print("Username: admin")
+                    print("Password: changeme")
+                    print("PLEASE CHANGE THIS PASSWORD IMMEDIATELY!")
+                    print("=" * 50)
+                except Exception as e:
+                    print(f"Error creating admin user: {e}")
+                    db.session.rollback()
+            else:
+                print(f"Found {admin_count} administrator(s) - skipping default admin creation")
+
+            app.config['_DB_INITIALIZED'] = True
 
     # ===== Additional App Configuration =====
 
