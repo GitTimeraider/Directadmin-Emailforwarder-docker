@@ -169,8 +169,9 @@ class DirectAdminAPI:
                         domain_list = []
                         for key, value in response.items():
                             if 'domain' in key.lower() or key.startswith('list'):
+                                # Handle case where value is a list (like list[] parameters)
                                 if isinstance(value, list):
-                                    domain_list.extend(value)
+                                    domain_list.extend(value)  # Use extend instead of append to flatten
                                 else:
                                     domain_list.append(value)
                             elif '.' in key and not key.startswith('<'):  # Might be domain name as key, but not HTML
@@ -229,9 +230,15 @@ class DirectAdminAPI:
                 domain_list = []
                 for key, value in response.items():
                     if 'domain' in key.lower() or key.startswith('list'):
-                        domain_list.append(value)
+                        # Handle case where value is a list (like list[] parameters)
+                        if isinstance(value, list):
+                            domain_list.extend(value)  # Use extend instead of append to flatten
+                        else:
+                            domain_list.append(value)
                     elif '.' in key and not key.startswith('<'):  # Might be domain name as key, but not HTML
                         domain_list.append(key)
+                
+                print(f"Parsed domain list: {domain_list}")
                 
                 if self.domain in domain_list:
                     print(f"✓ Domain {self.domain} found in account")
