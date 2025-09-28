@@ -100,28 +100,40 @@ def update_da_config():
 def test_connection():
     """Test DirectAdmin connection"""
     try:
+        print(f"\n=== Test Connection Request Received ===")
         data = request.get_json()
+        print(f"Request data: {data}")
 
         # Use provided or saved credentials
         server = data.get('da_server') or current_user.da_server
         username = data.get('da_username') or current_user.da_username
         password = data.get('da_password') or current_user.get_da_password()
+        domain = data.get('da_domain') or current_user.da_domain
+
+        print(f"Test connection with server: {server}, username: {username}, domain: {domain}")
 
         if not all([server, username, password]):
-            return jsonify({'error': 'Missing credentials'}), 400
+            print(f"Missing credentials - server: {bool(server)}, username: {bool(username)}, password: {bool(password)}")
+            return jsonify({'error': 'Missing credentials', 'success': False}), 200
 
         # Ensure proper URL format
         if not server.startswith(('http://', 'https://')):
             server = 'https://' + server
 
-        # Test connection
-        api = DirectAdminAPI(server, username, password)
+        # Test connection with domain if available
+        print(f"Creating DirectAdminAPI instance...")
+        api = DirectAdminAPI(server, username, password, domain)
+        
+        print(f"Calling test_connection()...")
         success, message = api.test_connection()
+        print(f"Test connection result: success={success}, message={message}")
 
-        return jsonify({
+        result = {
             'success': success,
             'message': message
-        })
+        }
+        print(f"Sending response: {result}")
+        return jsonify(result)
 
     except Exception as e:
         error_msg = str(e)

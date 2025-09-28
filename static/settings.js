@@ -286,7 +286,10 @@ async function testConnection() {
     try {
         // Add timeout to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeoutId = setTimeout(() => {
+            console.log('Connection test timeout reached, aborting...');
+            controller.abort();
+        }, 15000); // 15 second timeout for faster debugging
 
         const response = await fetch('/settings/api/test-connection', {
             method: 'POST',

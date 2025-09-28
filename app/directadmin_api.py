@@ -25,6 +25,8 @@ class DirectAdminAPI:
             if data:
                 print(f"Request data: {data}")
 
+            print(f"Starting HTTP request with 10 second timeout...")
+            
             # Common headers
             headers = {
                 'User-Agent': 'DirectAdmin Email Forwarder'
@@ -50,6 +52,7 @@ class DirectAdminAPI:
                     headers=headers
                 )
 
+            print(f"HTTP request completed successfully!")
             print(f"Response status: {response.status_code}")
             print(f"Response headers: {dict(response.headers)}")
 
@@ -157,8 +160,28 @@ class DirectAdminAPI:
             print(f"Username: {self.username}")
             print(f"Domain: {self.domain}")
             
-            # Try CMD_API_SHOW_DOMAINS first
+            # First try a simple HTTP request test
+            print(f"Testing basic HTTP connectivity...")
+            import requests
+            test_url = f"{self.server}/CMD_API_SHOW_DOMAINS"
+            
+            try:
+                basic_response = requests.get(
+                    test_url,
+                    auth=(self.username, self.password),
+                    verify=False,
+                    timeout=5  # Shorter timeout for basic test
+                )
+                print(f"Basic HTTP test: status={basic_response.status_code}")
+                if basic_response.status_code != 200:
+                    return False, f"HTTP request failed with status {basic_response.status_code}"
+            except Exception as e:
+                print(f"Basic HTTP test failed: {e}")
+                return False, f"Basic connectivity test failed: {str(e)}"
+            
+            # Try CMD_API_SHOW_DOMAINS with our parser
             endpoint = '/CMD_API_SHOW_DOMAINS'
+            print(f"Making test request to: {self.server}{endpoint}")
             response = self._make_request(endpoint, method='GET')
 
             if response is not None:
