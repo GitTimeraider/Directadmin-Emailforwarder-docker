@@ -123,10 +123,19 @@ async function loadEmailAccounts() {
             updateDestinationDropdown();
         } else {
             console.error('Failed to load email accounts:', data.error);
-            showMessage(`Failed to load email accounts for ${selectedDomain}`, 'error');
+            if (response.status === 403) {
+                showMessage(`Domain access denied: ${selectedDomain} may not be configured in your DirectAdmin account`, 'error');
+            } else {
+                showMessage(`Failed to load email accounts for ${selectedDomain}: ${data.error || 'Unknown error'}`, 'error');
+            }
+            
+            // Clear dropdown on error
+            updateDestinationDropdown();
         }
     } catch (error) {
         console.error('Error loading email accounts:', error);
+        showMessage(`Error loading email accounts for ${selectedDomain}`, 'error');
+        updateDestinationDropdown();
     }
 }
 
@@ -217,7 +226,12 @@ async function loadForwarders() {
 
     } catch (error) {
         console.error('Error loading forwarders:', error);
-        tbody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load forwarders for ' + selectedDomain + '. Please check your DirectAdmin settings.</td></tr>';
+        
+        if (error.response && error.response.status === 403) {
+            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Domain access denied: ' + selectedDomain + ' may not be configured in your DirectAdmin account.</td></tr>';
+        } else {
+            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load forwarders for ' + selectedDomain + '. Please check your DirectAdmin settings.</td></tr>';
+        }
     }
 }
 

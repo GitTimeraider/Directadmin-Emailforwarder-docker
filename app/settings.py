@@ -124,9 +124,21 @@ def test_connection():
         })
 
     except Exception as e:
-        print(f"Test connection error: {str(e)}")
+        error_msg = str(e)
+        print(f"Test connection error: {error_msg}")
         print(traceback.format_exc())
-        return jsonify({'error': 'An internal error has occurred.', 'success': False}), 200
+        
+        # Provide more specific error messages
+        if 'timeout' in error_msg.lower():
+            error_msg = 'Connection timed out. Please check your DirectAdmin server URL and network connection.'
+        elif 'connection' in error_msg.lower():
+            error_msg = 'Unable to connect to DirectAdmin server. Please verify the server URL is correct.'
+        elif 'ssl' in error_msg.lower() or 'certificate' in error_msg.lower():
+            error_msg = 'SSL certificate error. Try using HTTP instead of HTTPS, or check your certificate configuration.'
+        else:
+            error_msg = f'Connection test failed: {error_msg}'
+            
+        return jsonify({'error': error_msg, 'success': False}), 200
 
 @settings_bp.route('/api/domains', methods=['GET'])
 @login_required

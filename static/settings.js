@@ -255,8 +255,16 @@ document.getElementById('new_domain').addEventListener('keypress', (e) => {
 
 // Test connection function - COMPLETELY SEPARATE
 async function testConnection() {
+    console.log('testConnection called');
     const testButton = event.target;
     const originalText = testButton.textContent;
+    
+    // Ensure we always reset the button state
+    const resetButton = () => {
+        testButton.textContent = originalText;
+        testButton.disabled = false;
+    };
+    
     testButton.textContent = 'Testing...';
     testButton.disabled = true;
 
@@ -269,22 +277,32 @@ async function testConnection() {
 
     if (!formData.da_server || !formData.da_username) {
         showMessage('warning', 'Please enter server URL and username to test');
-        testButton.textContent = originalText;
-        testButton.disabled = false;
+        resetButton();
         return;
     }
 
     console.log('Testing connection to:', formData.da_server);
 
     try {
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
         const response = await fetch('/settings/api/test-connection', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             credentials: 'same-origin',
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
         const result = await response.json();
         console.log('Test response:', result);
@@ -292,14 +310,18 @@ async function testConnection() {
         if (result.success) {
             showMessage('success', '✓ ' + result.message);
         } else {
-            showMessage('warning', '✗ Connection failed: ' + (result.error || 'Unknown error') + '\nYou can still save these settings.');
+            showMessage('warning', '✗ Connection failed: ' + (result.error || result.message || 'Unknown error') + '\nYou can still save these settings.');
         }
     } catch (error) {
         console.error('Error testing connection:', error);
-        showMessage('error', '✗ Test error: ' + error.message + '\nYou can still save these settings.');
+        if (error.name === 'AbortError') {
+            showMessage('error', '✗ Connection test timed out after 30 seconds. Please check your DirectAdmin server URL and network connection.');
+        } else {
+            showMessage('error', '✗ Test error: ' + error.message + '\nYou can still save these settings.');
+        }
     } finally {
-        testButton.textContent = originalText;
-        testButton.disabled = false;
+        resetButton();
+        console.log('testConnection completed, button reset');
     }
 }
 

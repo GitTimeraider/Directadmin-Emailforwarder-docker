@@ -161,6 +161,14 @@ def create_app():
                 domain
             )
 
+            # Validate domain access first
+            domain_valid, domain_message = api.validate_domain_access()
+            if not domain_valid:
+                return jsonify({
+                    'error': f'Domain access validation failed: {domain_message}',
+                    'accounts': []
+                }), 403
+
             # Get email accounts
             accounts = api.get_email_accounts()
 
@@ -221,6 +229,14 @@ def create_app():
                 current_user.get_da_password(),
                 domain
             )
+
+            # Validate domain access first
+            domain_valid, domain_message = api.validate_domain_access()
+            if not domain_valid:
+                return jsonify({
+                    'error': f'Domain access validation failed: {domain_message}',
+                    'forwarders': []
+                }), 403
 
             # Get forwarders
             forwarders = api.get_forwarders()

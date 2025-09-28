@@ -64,6 +64,17 @@ class DirectAdminAPI:
                 text = response.text.strip()
                 print(f"Raw response: {text[:500]}...")  # First 500 chars for debugging
 
+                # Check if we got HTML instead of API data
+                if text.startswith('<!DOCTYPE html') or text.startswith('<html'):
+                    print(f"ERROR: Received HTML response instead of API data")
+                    print(f"This usually means the API endpoint doesn't exist or authentication failed")
+                    return None
+
+                # Check for empty response
+                if not text:
+                    print(f"ERROR: Empty response from DirectAdmin API")
+                    return None
+
                 # Parse response into dictionary first
                 result = {}
 
@@ -142,11 +153,15 @@ class DirectAdminAPI:
     def test_connection(self):
         """Test the connection to DirectAdmin"""
         try:
+            print(f"\n=== Testing Connection to {self.server} ===")
+            print(f"Username: {self.username}")
+            print(f"Domain: {self.domain}")
+            
             # Try CMD_API_SHOW_DOMAINS first
             endpoint = '/CMD_API_SHOW_DOMAINS'
             response = self._make_request(endpoint, method='GET')
 
-            if response:
+            if response is not None:
                 if isinstance(response, dict):
                     # Check if our domain is in the list
                     if self.domain:
@@ -154,40 +169,91 @@ class DirectAdminAPI:
                         domain_list = []
                         for key, value in response.items():
                             if 'domain' in key.lower() or key.startswith('list'):
-                                domain_list.append(value)
-                            elif '.' in key:  # Might be domain name as key
+                                if isinstance(value, list):
+                                    domain_list.extend(value)
+                                else:
+                                    domain_list.append(value)
+                            elif '.' in key and not key.startswith('<'):  # Might be domain name as key, but not HTML
                                 domain_list.append(key)
 
+                        print(f"Found domains: {domain_list}")
                         if self.domain in domain_list:
                             return True, f"Successfully connected. Domain {self.domain} found."
                         else:
-                            return True, f"Connected, but domain {self.domain} not found in account."
+                            return True, f"Connected, but domain {self.domain} not found in account. Available domains: {', '.join(domain_list[:3])}{'...' if len(domain_list) > 3 else ''}"
                     else:
                         return True, "Successfully connected to DirectAdmin."
                 else:
                     return True, "Successfully connected to DirectAdmin."
+            else:
+                print("CMD_API_SHOW_DOMAINS returned None (likely HTML response)")
 
             # If that fails, try a simpler endpoint
+            print("Trying CMD_API_SHOW_USER_CONFIG...")
             endpoint = '/CMD_API_SHOW_USER_CONFIG'
             response = self._make_request(endpoint, method='GET')
 
-            if response:
+            if response is not None:
                 return True, "Successfully connected to DirectAdmin."
+            else:
+                print("CMD_API_SHOW_USER_CONFIG also returned None")
 
-            return False, "Failed to connect. Please check your credentials."
+            return False, "Failed to connect. Server returned HTML instead of API data - please check your DirectAdmin URL, credentials, and API access."
 
         except Exception as e:
             import traceback
-            print(f"Connection error: {str(e)}")
+            error_msg = str(e)
+            print(f"Connection test exception: {error_msg}")
             traceback.print_exc()
-            return False, "Connection error: Unable to connect to DirectAdmin."
+            
+            # Provide more specific error messages
+            if 'timeout' in error_msg.lower():
+                return False, "Connection timed out. Please check your DirectAdmin server URL and network connection."
+            elif 'connection' in error_msg.lower():
+                return False, "Unable to connect to DirectAdmin server. Please verify the server URL and credentials."
+            elif 'ssl' in error_msg.lower() or 'certificate' in error_msg.lower():
+                return False, "SSL certificate error. Try using HTTP instead of HTTPS."
+            else:
+                return False, f"Connection error: {error_msg}"
+
+    def validate_domain_access(self):
+        """Check if the current domain is accessible via the API"""
+        try:
+            print(f"\n=== Validating Domain Access for {self.domain} ===")
+            
+            # Try to get domain list to verify access
+            endpoint = '/CMD_API_SHOW_DOMAINS'
+            response = self._make_request(endpoint, method='GET')
+            
+            if response and isinstance(response, dict):
+                domain_list = []
+                for key, value in response.items():
+                    if 'domain' in key.lower() or key.startswith('list'):
+                        domain_list.append(value)
+                    elif '.' in key and not key.startswith('<'):  # Might be domain name as key, but not HTML
+                        domain_list.append(key)
+                
+                if self.domain in domain_list:
+                    print(f"✓ Domain {self.domain} found in account")
+                    return True, f"Domain {self.domain} is accessible"
+                else:
+                    print(f"✗ Domain {self.domain} not found in account")
+                    print(f"Available domains: {domain_list}")
+                    return False, f"Domain {self.domain} not found in DirectAdmin account"
+            
+            print("Could not verify domain access - no domain list returned")
+            return False, "Unable to verify domain access"
+            
+        except Exception as e:
+            print(f"Error validating domain access: {e}")
+            return False, f"Error validating domain: {str(e)}"
 
     def get_email_accounts(self):
         """Get all email accounts for the domain"""
         try:
             print(f"\n=== Getting Email Accounts for {self.domain} ===")
 
-            # Try multiple endpoints
+            # Try API endpoints only
             endpoints = [
                 ('/CMD_API_POP', {'action': 'list', 'domain': self.domain}),
                 ('/CMD_API_POP', {'domain': self.domain}),
@@ -202,7 +268,11 @@ class DirectAdminAPI:
                     break
 
             if response is None:
-                print("No response from any email endpoint")
+                print("No valid response from any email accounts endpoint")
+                print("This could mean:")
+                print("- The domain doesn't exist in DirectAdmin")
+                print("- API user doesn't have permission for this domain")
+                print("- DirectAdmin API is not properly configured")
                 return []
 
             print(f"Raw response type: {type(response)}")
@@ -267,15 +337,29 @@ class DirectAdminAPI:
                     elif line and not line.startswith('error'):
                         accounts.append(f"{line}@{self.domain}")
 
-            # Ensure all accounts have domain part
+            # Ensure all accounts have domain part and filter out invalid entries
             processed_accounts = []
             for account in accounts:
                 if account:  # Skip empty strings
+                    # Skip entries that look like HTML
+                    if account.startswith('<') or '"' in account or account.startswith(':root'):
+                        print(f"Skipping invalid account that looks like HTML: {account}")
+                        continue
+                    
+                    # Validate email format
+                    import re
                     if '@' not in account:
-                        # Add domain if missing
-                        processed_accounts.append(f"{account}@{self.domain}")
+                        # Validate username part before adding domain
+                        if re.match(r'^[a-zA-Z0-9._-]+$', account):
+                            processed_accounts.append(f"{account}@{self.domain}")
+                        else:
+                            print(f"Skipping invalid username: {account}")
                     else:
-                        processed_accounts.append(account)
+                        # Validate full email
+                        if re.match(r'^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', account):
+                            processed_accounts.append(account)
+                        else:
+                            print(f"Skipping invalid email: {account}")
 
             # Remove duplicates and filter out API user
             processed_accounts = list(set(processed_accounts))
@@ -298,11 +382,10 @@ class DirectAdminAPI:
         try:
             print(f"\n=== Getting Forwarders for {self.domain} ===")
 
-            # Try multiple endpoint variations
+            # Try API endpoints only (avoid web interface endpoints)
             endpoints = [
                 ('/CMD_API_EMAIL_FORWARDERS', {'domain': self.domain, 'action': 'list'}),
                 ('/CMD_API_EMAIL_FORWARDERS', {'domain': self.domain}),
-                ('/CMD_EMAIL_FORWARDERS', {'domain': self.domain}),
             ]
 
             response = None
@@ -312,17 +395,21 @@ class DirectAdminAPI:
                 # Try GET first
                 response = self._make_request(endpoint, params, method='GET')
                 if response:
-                    print(f"Got response with GET")
+                    print(f"Got valid response with GET")
                     break
 
                 # Try POST
                 response = self._make_request(endpoint, params, method='POST')
                 if response:
-                    print(f"Got response with POST")
+                    print(f"Got valid response with POST")
                     break
 
             if response is None:
-                print("ERROR: No response from any forwarders endpoint!")
+                print("ERROR: No valid response from any API endpoint!")
+                print("This could mean:")
+                print("- The domain doesn't exist in DirectAdmin")
+                print("- API user doesn't have permission for this domain")
+                print("- DirectAdmin API is not properly configured")
                 return []
 
             print(f"\n=== FORWARDERS RAW RESPONSE ===")
@@ -375,6 +462,18 @@ class DirectAdminAPI:
                     # Look for all key-value pairs
                     for key, value in response.items():
                         if key.startswith('error') or key == 'domain':
+                            continue
+
+                        # Skip invalid keys that look like HTML
+                        if key.startswith('<') or '"' in key or key.startswith(':root'):
+                            print(f"Skipping invalid key that looks like HTML: {key}")
+                            continue
+
+                        # Validate that the key looks like a valid email username
+                        # Allow alphanumeric, dots, hyphens, underscores
+                        import re
+                        if not re.match(r'^[a-zA-Z0-9._-]+$', key):
+                            print(f"Skipping invalid username: {key}")
                             continue
 
                         # IMPORTANT: Accept ALL non-empty values as valid destinations
