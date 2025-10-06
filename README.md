@@ -1,5 +1,5 @@
 # DirectAdmin Email Forwarder Manager (Dockerized)
-### Disclaimer: AI is probably resposible for over half of the coding. Does that mean it does not work? Ofcourse not. Just an FYI.
+### Disclaimer: AI is probably responsible for over half of the coding. Does that mean it does not work? Ofcourse not. Just an FYI.
 <p align="center" width="100%">
     <img width="33%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/icon_main_25.png">
 </p>
