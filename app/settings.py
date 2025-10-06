@@ -138,9 +138,20 @@ def test_connection():
             user_message = "Connection test failed. Please check your details and try again or contact support."
             return jsonify({'success': False, 'message': user_message})
 
+        # Only allow pre-approved success messages to be sent back to the user
+        allowed_success_prefixes = [
+            "Successfully connected",
+            "Connected, but domain",
+            "Connected, but domain",
+        ]
+        user_message = "Successfully connected to DirectAdmin."
+        for prefix in allowed_success_prefixes:
+            if message.startswith(prefix):
+                user_message = message
+                break
         result = {
-            'success': success,
-            'message': message
+            'success': True,
+            'message': user_message
         }
         print(f"Sending response: {result}")
         return jsonify(result)
