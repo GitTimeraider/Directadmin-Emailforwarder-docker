@@ -1,4 +1,5 @@
 import requests
+import traceback
 import urllib.parse
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -230,7 +231,6 @@ class DirectAdminAPI:
             return False, "Failed to connect. Server returned HTML instead of API data - please check your DirectAdmin URL, credentials, and API access."
 
         except Exception as e:
-            import traceback
             error_msg = str(e)
             print(f"Connection test exception: {error_msg}")
             traceback.print_exc()
