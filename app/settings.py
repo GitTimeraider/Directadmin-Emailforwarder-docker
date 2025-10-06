@@ -131,6 +131,13 @@ def test_connection():
         success, message = api.test_connection()
         print(f"Test connection result: success={success}, message={message}")
 
+        if not success:
+            # Log the detailed error server-side
+            print(f"Sanitized error: {message}")
+            # Provide generic error for user
+            user_message = "Connection test failed. Please check your details and try again or contact support."
+            return jsonify({'success': False, 'message': user_message})
+
         result = {
             'success': success,
             'message': message
