@@ -118,8 +118,10 @@ def create_app():
             })
             
         except Exception as e:
+            print(f"Error in /api/migration-status: {str(e)}")
+            traceback.print_exc()
             return jsonify({
-                'error': f'Migration status check failed: {str(e)}',
+                'error': 'An internal error occurred while checking migration status.',
                 'success': False
             }), 500
 

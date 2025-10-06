@@ -280,8 +280,10 @@ class DirectAdminAPI:
             return False, "Unable to verify domain access"
             
         except Exception as e:
+            import traceback
             print(f"Error validating domain access: {e}")
-            return False, f"Error validating domain: {str(e)}"
+            traceback.print_exc()
+            return False, "An internal error occurred while validating domain access."
 
     def get_email_accounts(self):
         """Get all email accounts for the domain"""

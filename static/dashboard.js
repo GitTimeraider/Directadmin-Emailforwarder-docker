@@ -4,6 +4,16 @@ let emailAccounts = [];
 let availableDomains = [];
 let selectedDomain = null;
 
+// Escape a string for HTML insertion (prevents XSS)
+function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 // Helper function to validate destinations (including special ones)
 function isValidDestination(destination) {
     // Allow special destinations
@@ -228,9 +238,9 @@ async function loadForwarders() {
         console.error('Error loading forwarders:', error);
         
         if (error.response && error.response.status === 403) {
-            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Domain access denied: ' + selectedDomain + ' may not be configured in your DirectAdmin account.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Domain access denied: ' + escapeHTML(selectedDomain) + ' may not be configured in your DirectAdmin account.</td></tr>';
         } else {
-            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load forwarders for ' + selectedDomain + '. Please check your DirectAdmin settings.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load forwarders for ' + escapeHTML(selectedDomain) + '. Please check your DirectAdmin settings.</td></tr>';
         }
     }
 }
