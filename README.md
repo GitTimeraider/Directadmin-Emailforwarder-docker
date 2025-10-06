@@ -36,7 +36,7 @@ A Dockerized secure web application for managing email forwarders through the Di
 - **Docker** (recommended): Docker Engine 20.10+ and Docker Compose 2.0+
 
 <p align="center" width="100%">
-    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/directadmin2.jpg">
+    <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/directadmin3.jpg">
 </p>
 
 ## 🚀 Quick Start
