@@ -134,21 +134,14 @@ def test_connection():
         if not success:
             # Log the detailed error server-side
             print(f"Sanitized error: {message}")
-            # Provide generic error for user
+            # Provide generic error for user, never send message details
             user_message = "Connection test failed. Please check your details and try again or contact support."
-            return jsonify({'success': False, 'message': user_message})
-
-        # Only allow pre-approved success messages to be sent back to the user
-        allowed_success_prefixes = [
-            "Successfully connected",
-            "Connected, but domain",
-            "Connected, but domain",
-        ]
+            result = {'success': False, 'message': user_message}
+            print(f"Sending response: {result}")
+            return jsonify(result)
+        
+        # Only allow strictly safe success message to be sent back to the user
         user_message = "Successfully connected to DirectAdmin."
-        for prefix in allowed_success_prefixes:
-            if message.startswith(prefix):
-                user_message = message
-                break
         result = {
             'success': True,
             'message': user_message
