@@ -1,11 +1,14 @@
 # DirectAdmin Email Forwarder Manager (Dockerized)
-### Disclaimer: AI is probably responsible for over half of the coding. Does that mean it does not work? Ofcourse not. Just an FYI.
 <p align="center" width="100%">
     <img width="33%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/icon_main_25.png">
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+
+### Disclaimers: 
+#### AI is responsible for over half of the coding. Also keep in mind that this software is mostly developed for personal use by myself and thus might not receive all feature requests desired.
+###################################################
 
 A Dockerized secure web application for managing email forwarders through the DirectAdmin API. Features a clean web interface with authentication, 2FA support, user management options.
 
