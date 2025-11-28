@@ -12,28 +12,28 @@
 
 A Dockerized secure web application for managing email forwarders through the DirectAdmin API. Features a clean web interface with authentication, 2FA support, user management options.
 
-## ✨ Features
+## Features
 
-- **🔐 Secure Authentication**: Built-in user authentication system with session management
-- **📱 Two-Factor Authentication**: Optional TOTP-based 2FA for enhanced security
-- **📧 Email Forwarder Management**: 
+- **[Security] Secure Authentication**: Built-in user authentication system with session management
+- **[Mobile] Two-Factor Authentication**: Optional TOTP-based 2FA for enhanced security
+- **[Email] Email Forwarder Management**: 
   - Create email forwarders with intuitive interface
   - List all existing forwarders
   - Delete forwarders with confirmation
   - Auto-refresh forwarders list every 60 seconds
-- **🎨 Modern Web UI**: Clean, responsive interface built with vanilla JavaScript
-- **🐳 Docker Support**: 
+- **[UI] Modern Web UI**: Clean, responsive interface built with vanilla JavaScript
+- **[Docker] Docker Support**: 
   - Multi-architecture images (amd64, arm64)
   - Configurable UID/GID for proper file permissions
   - Available on GitHub Container Registry
-- **🔄 DirectAdmin Integration**: Direct API integration with DirectAdmin servers
-- **📊 Real-time Updates**: Automatic refresh of forwarder list
+- **[API] DirectAdmin Integration**: Direct API integration with DirectAdmin servers
+- **[Live] Real-time Updates**: Automatic refresh of forwarder list
 <p align="center" width="100%">
     <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/dashboard.jpg">
 </p>
 
 
-## 📚 Prerequisites
+## Prerequisites
 
 - **DirectAdmin Server**: Access to a DirectAdmin server with API enabled
 - **DirectAdmin API Credentials**: Username and password with email management permissions
@@ -43,7 +43,7 @@ A Dockerized secure web application for managing email forwarders through the Di
     <img width="100%" src="https://github.com/GitTimeraider/Assets/blob/main/Directadmin-Emailforwarder-docker/img/directadmin3.jpg">
 </p>
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Pull and run the Docker image
@@ -56,22 +56,22 @@ docker run -d \
 ```
 Access the application at `http://localhost:5000`
 
--   Default username: `admin`
--   Default password: `changeme` (⚠️ Change immediately!)
+-   Default username: `admin`
+-   Default password: `changeme` (**WARNING: Change immediately!**)
 
 ### Environment Variables
 
 | Variable | Description | Required | Default | Example |
 | --- | --- | --- | --- | --- |
-| `SECRET_KEY` | Flask secret key for session encryption | ✅ | \- | `your-secret-key-here` |
-| `USER_UID` | User ID for container process | ❌ | `1000` | `1001` |
-| `USER_GID` | Group ID for container process | ❌ | `1000` | `1001` |
-| `DATABASE_URL` | SQLAlchemy database URL | ❌ | `sqlite:////app/data/users.db` | `postgresql://...` |
-| `DATA_DIR` | Override data directory (SQLite, uploads) | ❌ | `/app/data` | `/data` |
-| `SESSION_COOKIE_SECURE` | Force secure cookies (set true in HTTPS) | ❌ | `false` | `true` |
-| `SESSION_LIFETIME_DAYS` | Session lifetime in days | ❌ | `1` | `7` |
+| `SECRET_KEY` | Flask secret key for session encryption | Yes | \- | `your-secret-key-here` |
+| `USER_UID` | User ID for container process | No | `1000` | `1001` |
+| `USER_GID` | Group ID for container process | No | `1000` | `1001` |
+| `DATABASE_URL` | SQLAlchemy database URL | No | `sqlite:////app/data/users.db` | `postgresql://...` |
+| `DATA_DIR` | Override data directory (SQLite, uploads) | No | `/app/data` | `/data` |
+| `SESSION_COOKIE_SECURE` | Force secure cookies (set true in HTTPS) | No | `false` | `true` |
+| `SESSION_LIFETIME_DAYS` | Session lifetime in days | No | `1` | `7` |
 
-## 📖 Usage
+## Usage
 
 ### First-Time Setup
 
@@ -111,7 +111,7 @@ Access the application at `http://localhost:5000`
 2.  Click "Delete" button
 3.  Confirm deletion
 
-## 👥 User Management
+## User Management
 
 ### Accessing User Management
 
@@ -155,7 +155,7 @@ Only administrators can access user management at `/admin/users`
 </p>
 
 
-## 🔒 Security
+## Security
 
 ### Best Practices
 
@@ -188,7 +188,7 @@ Only administrators can access user management at `/admin/users`
 -   Admin/user role separation
 -   Activity logging
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
