@@ -4,6 +4,22 @@ let emailAccounts = [];
 let availableDomains = [];
 let selectedDomain = null;
 
+// Generate a random string for email alias (12-18 characters)
+function generateRandomAlias() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const length = Math.floor(Math.random() * 7) + 12; // Random length between 12 and 18
+    let randomString = '';
+    
+    for (let i = 0; i < length; i++) {
+        randomString += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    const aliasInput = document.getElementById('alias');
+    if (aliasInput) {
+        aliasInput.value = randomString;
+    }
+}
+
 // Escape a string for HTML insertion (prevents XSS)
 function escapeHTML(str) {
     return String(str)

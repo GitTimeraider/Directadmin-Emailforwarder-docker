@@ -768,6 +768,28 @@ input.error {
     align-items: center;
 }
 
+.btn-dice {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    margin-left: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    flex-shrink: 0;
+}
+
+.btn-dice:hover {
+    background-color: var(--primary-hover);
+    transform: scale(1.05);
+}
+
+.btn-dice:active {
+    transform: scale(0.95);
+}
+
 .table-container {
     overflow-x: auto;
 }
