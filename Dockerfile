@@ -1,4 +1,4 @@
-FROM python:3.14.1-slim
+FROM python:3.15.0a2-slim
 
 # Default UID and GID (can be overridden)
 ARG USER_UID=1000
@@ -9,7 +9,18 @@ WORKDIR /app
 # Install system dependencies and create user
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
     gosu \
+    python3-dev \
+    libffi-dev \
+    zlib1g-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    liblcms2-dev \
+    libopenjp2-7-dev \
+    libtiff-dev \
+    libwebp-dev \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -g ${USER_GID} appuser \
     && useradd -m -u ${USER_UID} -g appuser appuser
