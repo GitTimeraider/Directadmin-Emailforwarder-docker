@@ -8,3 +8,5 @@ qrcode==8.2
 pillow==12.1.1
 requests==2.32.5
 cryptography==46.0.6
+requests==2.33.0
+cryptography==46.0.6
