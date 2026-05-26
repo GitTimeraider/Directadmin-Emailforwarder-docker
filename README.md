@@ -115,7 +115,7 @@ Access the application at `http://localhost:5000`
 
 ### Accessing User Management
 
-Only administrators can access user management at `/admin/users`
+Only administrators can access user management @ `/admin/users`
 
 ### Managing Users
 
