@@ -3,8 +3,8 @@ Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
 gunicorn==26.0.0
 Werkzeug==3.1.8
-pyotp==2.9.0
+pyotp==2.10.0
 qrcode==8.2
 requests==2.34.2
 pillow==12.2.0
-cryptography==48.0.0
+cryptography==49.0.0
