@@ -8,6 +8,7 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/img/ico_main_25.ico') }}">
 </head>
 <body data-theme="{{ current_user.theme_preference if current_user.is_authenticated else 'dark' }}">
+{% if current_user.is_authenticated %}
 <nav>
     <div class="nav-brand">
         <a href="{{ url_for('dashboard') }}">DirectAdmin 📧 Forwarder</a>
@@ -30,6 +31,7 @@
         <a href="{{ url_for('auth.logout') }}">Logout</a>
     </div>
 </nav>
+{% endif %}
 
     <main class="site-main">
     {% with messages = get_flashed_messages(with_categories=true) %}
