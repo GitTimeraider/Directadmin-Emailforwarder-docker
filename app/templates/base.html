@@ -31,6 +31,7 @@
     </div>
 </nav>
 
+    <main class="site-main">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -40,6 +41,7 @@
     {% endwith %}
 
     {% block content %}{% endblock %}
+    </main>
 
     <footer class="site-footer">
         <p>Created by <a href="https://github.com/GitTimeraider" target="_blank" rel="noopener noreferrer">GitTimeraider</a></p>
