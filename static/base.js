@@ -4,60 +4,61 @@ document.addEventListener('DOMContentLoaded', function() {
     const navLinks = document.getElementById('navLinks');
     const body = document.body;
 
-    // Create overlay element
-    const overlay = document.createElement('div');
-    overlay.className = 'nav-overlay';
-    document.body.appendChild(overlay);
+    // Nav is only rendered for authenticated users (e.g. not on the login page)
+    if (hamburger && navLinks) {
+        // Create overlay element
+        const overlay = document.createElement('div');
+        overlay.className = 'nav-overlay';
+        document.body.appendChild(overlay);
 
-    // Toggle menu function
-    function toggleMenu() {
-        hamburger.classList.toggle('active');
-        navLinks.classList.toggle('active');
-        overlay.classList.toggle('active');
-        body.classList.toggle('menu-open');
-    }
-
-    // Hamburger click
-    if (hamburger) {
-        hamburger.addEventListener('click', toggleMenu);
-    }
-
-    // Overlay click (close menu)
-    overlay.addEventListener('click', function() {
-        if (navLinks.classList.contains('active')) {
-            toggleMenu();
+        // Toggle menu function
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('active');
+            overlay.classList.toggle('active');
+            body.classList.toggle('menu-open');
         }
-    });
 
-    // Close menu when clicking a link
-    const navLinksItems = navLinks.querySelectorAll('a');
-    navLinksItems.forEach(link => {
-        link.addEventListener('click', function() {
-            if (window.innerWidth <= 768) {
+        // Hamburger click
+        hamburger.addEventListener('click', toggleMenu);
+
+        // Overlay click (close menu)
+        overlay.addEventListener('click', function() {
+            if (navLinks.classList.contains('active')) {
                 toggleMenu();
             }
         });
-    });
 
-    // Handle window resize
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-            if (window.innerWidth > 768) {
-                // Reset menu state on desktop
-                hamburger.classList.remove('active');
-                navLinks.classList.remove('active');
-                overlay.classList.remove('active');
-                body.classList.remove('menu-open');
-            }
-        }, 250);
-    });
+        // Close menu when clicking a link
+        const navLinksItems = navLinks.querySelectorAll('a');
+        navLinksItems.forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    toggleMenu();
+                }
+            });
+        });
+
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (window.innerWidth > 768) {
+                    // Reset menu state on desktop
+                    hamburger.classList.remove('active');
+                    navLinks.classList.remove('active');
+                    overlay.classList.remove('active');
+                    body.classList.remove('menu-open');
+                }
+            }, 250);
+        });
+    }
 
     // Theme persistence - apply theme from localStorage if different from server preference
     const savedTheme = localStorage.getItem('theme-preference');
     const currentTheme = body.getAttribute('data-theme');
-    
+
     if (savedTheme && savedTheme !== currentTheme) {
         body.setAttribute('data-theme', savedTheme);
     }
