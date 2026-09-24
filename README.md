@@ -71,6 +71,45 @@ Access the application at `http://localhost:5000`
 | `SESSION_COOKIE_SECURE` | Force secure cookies (set true in HTTPS) | No | `false` | `true` |
 | `SESSION_LIFETIME_DAYS` | Session lifetime in days | No | `1` | `7` |
 
+### Running as a non-root user (rootless mode)
+
+By default the container starts as root, adjusts the internal `appuser` to `USER_UID`/`USER_GID`, fixes permissions and then drops privileges (via `gosu`) before starting the app. The app itself never runs as root.
+
+If you don't want the container to start as root at all, start it with a specific user. The entrypoint detects this, skips the user/permission setup and runs the app directly as that user. `USER_UID`/`USER_GID` are then ignored.
+
+Because nothing can be `chown`ed in this mode, the data directory on the host must already be owned by (or writable for) that user **before** starting:
+
+```bash
+# On the Docker host, in the folder that holds ./data
+mkdir -p ./data
+sudo chown -R 1000:1000 ./data
+```
+
+`docker run`:
+
+```bash
+docker run -d \
+  --name email-forwarder \
+  --user 1000:1000 \
+  -p 5000:5000 \
+  -e SECRET_KEY=$(openssl rand -hex 32) \
+  -v ./data:/app/data \
+  ghcr.io/gittimeraider/directadmin-emailforwarder:main
+```
+
+`docker-compose.yml`:
+
+```yaml
+services:
+  web:
+    image: ghcr.io/gittimeraider/directadmin-emailforwarder:main
+    user: "1000:1000"
+    volumes:
+      - ./data:/app/data
+```
+
+If the data directory is not writable, the container exits with an error telling you which `chown` to run.
+
 ## Usage
 
 ### First-Time Setup

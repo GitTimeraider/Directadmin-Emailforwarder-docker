@@ -1,6 +1,28 @@
 #!/bin/bash
 set -e
 
+DATA_DIR=${DATA_DIR:-/app/data}
+
+# Rootless mode: container was started with --user / `user:` (not as root).
+# We can't (and don't need to) modify users or chown anything, so just
+# verify the data directory is writable and run the command directly.
+if [ "$(id -u)" != "0" ]; then
+    echo "Starting as non-root user (UID: $(id -u), GID: $(id -g)); skipping user setup"
+    if [ -n "${USER_UID:-}" ] || [ -n "${USER_GID:-}" ]; then
+        echo "Note: USER_UID/USER_GID are ignored when the container is started with --user"
+    fi
+
+    mkdir -p "$DATA_DIR" 2>/dev/null || true
+    if [ ! -w "$DATA_DIR" ]; then
+        echo "ERROR: $DATA_DIR is not writable by UID $(id -u)." >&2
+        echo "Fix the ownership of the mounted data directory on the host, e.g.:" >&2
+        echo "  chown -R $(id -u):$(id -g) ./data" >&2
+        exit 1
+    fi
+
+    exec "$@"
+fi
+
 # Default UID/GID
 USER_UID=${USER_UID:-1000}
 USER_GID=${USER_GID:-1000}
