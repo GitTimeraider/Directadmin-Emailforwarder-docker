@@ -460,7 +460,9 @@ class DirectAdminAPI:
                 # DirectAdmin commonly uses these formats for forwarders:
 
                 # Format 1: select0, select1, etc. (common for lists)
-                select_keys = [k for k in response.keys() if k.startswith('select')]
+                # Only match real selectN keys, so a forwarder named e.g. "selection@" isn't misread
+                import re
+                select_keys = [k for k in response.keys() if re.match(r'^select\d+$', k)]
                 if select_keys:
                     print(f"Found select keys: {select_keys}")
                     for key in select_keys:
@@ -498,7 +500,14 @@ class DirectAdminAPI:
                 else:
                     # Look for all key-value pairs
                     for key, value in response.items():
-                        if key.startswith('error') or key == 'domain':
+                        # Skip DirectAdmin status/meta keys, but only when they really are
+                        # metadata. A forwarder can legitimately be named "domain@",
+                        # "error@" or "text@", in which case the value is its destination.
+                        if key == 'error' and str(value) in ('0', '1'):
+                            continue
+                        if key in ('text', 'details') and 'error' in response:
+                            continue
+                        if key == 'domain' and str(value).lower() == str(self.domain).lower():
                             continue
 
                         # Skip invalid keys that look like HTML
@@ -508,7 +517,6 @@ class DirectAdminAPI:
 
                         # Validate that the key looks like a valid email username
                         # Allow alphanumeric, dots, hyphens, underscores
-                        import re
                         if not re.match(r'^[a-zA-Z0-9._-]+$', key):
                             print(f"Skipping invalid username: {key}")
                             continue
