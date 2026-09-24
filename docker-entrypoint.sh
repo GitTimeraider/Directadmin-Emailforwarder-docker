@@ -20,6 +20,13 @@ if [ "$(id -u)" != "0" ]; then
         exit 1
     fi
 
+    # An arbitrary UID usually has no home dir in the image (HOME=/), but
+    # gunicorn puts its control socket under $HOME/.gunicorn, so point
+    # HOME somewhere writable.
+    if [ -z "${HOME:-}" ] || [ ! -w "$HOME" ]; then
+        export HOME=/tmp
+    fi
+
     exec "$@"
 fi
 
