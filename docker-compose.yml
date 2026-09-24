@@ -5,6 +5,9 @@ services:
     build:
       context: .
     image: ghcr.io/gittimeraider/directadmin-emailforwarder:main
+    # Optional: start the container directly as a non-root user (rootless mode).
+    # When set, USER_UID/USER_GID are ignored and ./data must already be owned by this UID:GID.
+    # user: "1000:1000"
     ports:
       - "5000:5000"
     environment:
